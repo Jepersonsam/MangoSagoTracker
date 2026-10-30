@@ -6,21 +6,24 @@ import {
   calculateMetrics,
   postOrderToSheet,
   postExpenseToSheet,
+  formatRupiah,
   SPREADSHEET_ID,
 } from './services/sheetsService';
 import { getCurrentUser, logoutUser } from './services/authService';
-import { OrderItem, ExpenseItem, CashflowItem, DashboardMetrics, User } from './types';
+import { getAuditLogs, recordAuditLog, clearAuditLogs } from './services/auditService';
+import { OrderItem, ExpenseItem, CashflowItem, DashboardMetrics, User, AuditLog } from './types';
 import { Navbar } from './components/Navbar';
 import { MetricCards } from './components/MetricCards';
 import { ChartsSection } from './components/ChartsSection';
 import { OrdersTab } from './components/OrdersTab';
 import { ExpensesTab } from './components/ExpensesTab';
 import { CashflowTab } from './components/CashflowTab';
+import { AuditLogTab } from './components/AuditLogTab';
 import { NewOrderModal } from './components/NewOrderModal';
 import { NewExpenseModal } from './components/NewExpenseModal';
 import { SheetSettingsModal } from './components/SheetSettingsModal';
 import { LoginPage } from './components/LoginPage';
-import { ShoppingBag, ShoppingCart, Landmark } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Landmark, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
@@ -32,6 +35,8 @@ export default function App() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [cashflow, setCashflow] = useState<CashflowItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => getAuditLogs());
+
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalRevenue: 0,
     totalExpenses: 0,
@@ -44,7 +49,7 @@ export default function App() {
     currentBalance: 0,
   });
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'expenses' | 'cashflow'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'expenses' | 'cashflow' | 'audit'>('orders');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
@@ -61,6 +66,24 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Helper to record an audit action
+  const logAudit = (
+    action: AuditLog['action'],
+    category: AuditLog['category'],
+    description: string,
+    details?: string
+  ) => {
+    const newEntry = recordAuditLog({
+      userName: currentUser?.name || 'Admin',
+      userRole: currentUser?.role || 'Admin',
+      action,
+      category,
+      description,
+      details,
+    });
+    setAuditLogs((prev) => [newEntry, ...prev]);
   };
 
   const loadData = useCallback(async (isSilent = false) => {
@@ -82,6 +105,7 @@ export default function App() {
 
       if (!isSilent) {
         showToast('Data berhasil disinkronkan dengan Google Sheets!');
+        logAudit('SYNC_SHEETS', 'Sistem', 'Sinkronisasi manual data dengan Google Sheets', `ID Sheet: ${sheetId}`);
       }
     } catch (err) {
       console.error('Failed to sync sheet data:', err);
@@ -111,11 +135,31 @@ export default function App() {
   // Handle Login
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    showToast(`Selamat datang, ${user.name}!`);
+    const newLog = recordAuditLog({
+      userName: user.name,
+      userRole: user.role,
+      action: 'LOGIN',
+      category: 'Autentikasi',
+      description: `Admin ${user.name} berhasil login ke dashboard`,
+      details: `Email: ${user.email}`,
+    });
+    setAuditLogs((prev) => [newLog, ...prev]);
+    showToast(`Selamat datang, Admin ${user.name}!`);
   };
 
   // Handle Logout
   const handleLogout = () => {
+    if (currentUser) {
+      const newLog = recordAuditLog({
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        action: 'LOGOUT',
+        category: 'Autentikasi',
+        description: `Admin ${currentUser.name} keluar dari sistem (logout)`,
+        details: 'Sesi ditutup dengan aman',
+      });
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
     logoutUser();
     setCurrentUser(null);
     showToast('Anda telah berhasil keluar (logout).');
@@ -123,10 +167,14 @@ export default function App() {
 
   // Toggle Order Paid Status
   const handleToggleStatus = (orderId: string) => {
+    let changedOrderName = '';
+    let nextStatus = '';
+
     setOrders((prev) => {
       const updated = prev.map((ord) => {
         if (ord.id === orderId) {
-          const nextStatus = ord.status === 'Paid' ? 'Not Paid' : 'Paid';
+          nextStatus = ord.status === 'Paid' ? 'Not Paid' : 'Paid';
+          changedOrderName = ord.namaPemesan;
           return {
             ...ord,
             status: nextStatus,
@@ -138,6 +186,14 @@ export default function App() {
       setMetrics(calculateMetrics(updated, expenses, cashflow));
       return updated;
     });
+
+    logAudit(
+      'UPDATE_ORDER',
+      'Pesanan',
+      `Mengubah status pesanan untuk ${changedOrderName || 'Pelanggan'}`,
+      `Status diperbarui menjadi: ${nextStatus} (ID: ${orderId})`
+    );
+
     showToast('Status pesanan berhasil diperbarui!');
   };
 
@@ -149,6 +205,14 @@ export default function App() {
       return updated;
     });
     postOrderToSheet(newOrder);
+
+    logAudit(
+      'CREATE_ORDER',
+      'Pesanan',
+      `Menambah pesanan baru: ${newOrder.namaPemesan}`,
+      `${newOrder.qty} cup • ${formatRupiah(newOrder.amount)} • Bayar: ${newOrder.pembayaran} • Batch: ${newOrder.batch || '-'}`
+    );
+
     showToast(`Pesanan untuk ${newOrder.namaPemesan} berhasil dicatat!`);
   };
 
@@ -160,13 +224,35 @@ export default function App() {
       return updated;
     });
     postExpenseToSheet(newExpense);
+
+    logAudit(
+      'CREATE_EXPENSE',
+      'Pengeluaran',
+      `Mencatat belanja bahan/operasional: ${newExpense.item}`,
+      `${newExpense.qty} item • ${formatRupiah(newExpense.totalAmount)} • Kategori: ${newExpense.category}`
+    );
+
     showToast(`Pengeluaran ${newExpense.item} berhasil dicatat!`);
   };
 
   const handleSaveSheetId = (newId: string) => {
     setSheetId(newId);
     localStorage.setItem('mango_sheet_id', newId);
+
+    logAudit(
+      'UPDATE_SETTINGS',
+      'Sistem',
+      'Memperbarui konfigurasi spreadsheet ID',
+      `ID baru: ${newId}`
+    );
+
     showToast('ID Spreadsheet diperbarui!');
+  };
+
+  const handleClearLogs = () => {
+    clearAuditLogs(currentUser?.name || 'Admin');
+    setAuditLogs(getAuditLogs());
+    showToast('Riwayat audit log berhasil direset.');
   };
 
   // If not logged in, show beautiful LoginPage
@@ -207,7 +293,7 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Container */}
+      {/* Main Container (Full Screen) */}
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
         {/* KPI Metric Cards */}
         <MetricCards metrics={metrics} />
@@ -217,10 +303,10 @@ export default function App() {
 
         {/* Tab Navigation */}
         <div className="flex items-center justify-between border-b border-slate-200 pt-2">
-          <div className="flex space-x-2 sm:space-x-4">
+          <div className="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1 scrollbar-thin">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
+              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'orders'
                   ? 'border-amber-500 text-amber-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -237,7 +323,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('expenses')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
+              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'expenses'
                   ? 'border-rose-500 text-rose-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -254,7 +340,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('cashflow')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
+              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'cashflow'
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -266,6 +352,24 @@ export default function App() {
                 activeTab === 'cashflow' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {cashflow.length}
+              </span>
+            </button>
+
+            {/* AUDIT LOG TAB */}
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+                activeTab === 'audit'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>Audit Log (Rekam Jejak)</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                activeTab === 'audit' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {auditLogs.length}
               </span>
             </button>
           </div>
@@ -291,6 +395,13 @@ export default function App() {
           {activeTab === 'cashflow' && (
             <CashflowTab cashflows={cashflow} />
           )}
+
+          {activeTab === 'audit' && (
+            <AuditLogTab
+              logs={auditLogs}
+              onClearLogs={handleClearLogs}
+            />
+          )}
         </div>
       </main>
 
@@ -301,7 +412,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSettingsModalOpen(true)}
-              className="hover:underline text-amber-600 font-medium"
+              className="hover:underline text-amber-600 font-medium cursor-pointer"
             >
               Konfigurasi Integrasi Sheet
             </button>

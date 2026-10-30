@@ -6,6 +6,18 @@ export interface User {
   avatar?: string;
 }
 
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  formattedDate: string;
+  userName: string;
+  userRole: string;
+  action: 'LOGIN' | 'LOGOUT' | 'CREATE_ORDER' | 'UPDATE_ORDER' | 'CREATE_EXPENSE' | 'SYNC_SHEETS' | 'UPDATE_SETTINGS' | 'CLEAR_LOGS';
+  category: 'Autentikasi' | 'Pesanan' | 'Pengeluaran' | 'Sistem';
+  description: string;
+  details?: string;
+}
+
 export interface OrderItem {
   id: string;
   tanggal: string;
