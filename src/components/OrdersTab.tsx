@@ -27,9 +27,12 @@ interface OrdersTabProps {
 
 type DisplayMode = 'slide' | 'calendar' | 'table';
 
+export type DateStatus = 'past' | 'today' | 'future';
+
 interface DateSummary {
   tanggal: string;
   dateObj: Date | null;
+  status: DateStatus;
   totalQty: number;
   totalAmount: number;
   orderCount: number;
@@ -42,11 +45,36 @@ interface DateSummary {
   orders: OrderItem[];
 }
 
-function parseDateString(dateStr: string): Date | null {
+export function parseDateString(dateStr: string): Date | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return d;
 
+  // Format: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  // Format: DD/MM/YYYY or DD-MM-YYYY
+  const numParts = dateStr.trim().split(/[/.-]/);
+  if (
+    numParts.length === 3 &&
+    !isNaN(Number(numParts[0])) &&
+    !isNaN(Number(numParts[1])) &&
+    !isNaN(Number(numParts[2]))
+  ) {
+    let day = Number(numParts[0]);
+    let month = Number(numParts[1]) - 1;
+    let year = Number(numParts[2]);
+    if (year < 100) year += 2000;
+    if (month > 11 && day <= 12) {
+      const temp = day;
+      day = month + 1;
+      month = temp - 1;
+    }
+    return new Date(year, month, day);
+  }
+
+  // Text format e.g. "26 Oct 26", "3 Nov 2026", "26 Oktober 2026"
   const parts = dateStr.trim().split(/[\s-]+/);
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
@@ -63,7 +91,21 @@ function parseDateString(dateStr: string): Date | null {
       return new Date(year, monthMap[monthKey], day);
     }
   }
+
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
   return null;
+}
+
+export function getDateStatus(dateObj: Date | null): DateStatus {
+  if (!dateObj) return 'past';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const target = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
+
+  if (target < today) return 'past';
+  if (target === today) return 'today';
+  return 'future';
 }
 
 export const OrdersTab: React.FC<OrdersTabProps> = ({
@@ -74,8 +116,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const [displayMode, setDisplayMode] = useState<DisplayMode>('slide');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Not Paid'>('All');
+  const [dateCategoryFilter, setDateCategoryFilter] = useState<'all' | 'future' | 'past'>('all');
 
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [selectedSlideDate, setSelectedSlideDate] = useState<string | null>(null);
 
   const [calDate, setCalDate] = useState(() => new Date(2026, 10, 1));
   const [calSelectedDateStr, setCalSelectedDateStr] = useState<string | null>(null);
@@ -86,9 +129,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     orders.forEach((ord) => {
       const key = ord.tanggal || 'Tanpa Tanggal';
       if (!map.has(key)) {
+        const dObj = parseDateString(key);
         map.set(key, {
           tanggal: key,
-          dateObj: parseDateString(key),
+          dateObj: dObj,
+          status: getDateStatus(dObj),
           totalQty: 0,
           totalAmount: 0,
           orderCount: 0,
@@ -136,7 +181,40 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return list;
   }, [orders]);
 
-  const currentSlide = dailySummaries[activeSlideIndex] || dailySummaries[0];
+  // Counts for past vs future
+  const upcomingDatesCount = useMemo(() => {
+    return dailySummaries.filter((s) => s.status === 'future' || s.status === 'today').length;
+  }, [dailySummaries]);
+
+  const pastDatesCount = useMemo(() => {
+    return dailySummaries.filter((s) => s.status === 'past').length;
+  }, [dailySummaries]);
+
+  // Filtered summaries for quick slider pills
+  const displayedSummaries = useMemo(() => {
+    if (dateCategoryFilter === 'future') {
+      return dailySummaries.filter((s) => s.status === 'future' || s.status === 'today');
+    }
+    if (dateCategoryFilter === 'past') {
+      return dailySummaries.filter((s) => s.status === 'past');
+    }
+    return dailySummaries;
+  }, [dailySummaries, dateCategoryFilter]);
+
+  // Determine active slide: preferentially default to the first upcoming/today date
+  const currentSlide: DateSummary | undefined = useMemo(() => {
+    if (selectedSlideDate) {
+      const found = dailySummaries.find((s) => s.tanggal === selectedSlideDate);
+      if (found) return found;
+    }
+    // Default to the first upcoming/today date if available, otherwise latest date
+    const firstActive = dailySummaries.find((s) => s.status === 'today' || s.status === 'future');
+    return firstActive || dailySummaries[dailySummaries.length - 1] || dailySummaries[0];
+  }, [dailySummaries, selectedSlideDate]);
+
+  const currentSlideIndex = useMemo(() => {
+    return dailySummaries.findIndex((s) => s.tanggal === currentSlide?.tanggal);
+  }, [dailySummaries, currentSlide]);
 
   const dateSummaryMap = useMemo(() => {
     const m = new Map<string, DateSummary>();
@@ -345,8 +423,12 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
             <button
               type="button"
-              disabled={activeSlideIndex <= 0}
-              onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
+              disabled={currentSlideIndex <= 0}
+              onClick={() => {
+                if (currentSlideIndex > 0) {
+                  setSelectedSlideDate(dailySummaries[currentSlideIndex - 1].tanggal);
+                }
+              }}
               className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
               title="Hari Sebelumnya"
             >
@@ -354,33 +436,62 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             </button>
 
             {/* Slide Center Info */}
-            <div className="text-center px-1 space-y-0.5 sm:space-y-1">
-              <div className="text-[10px] sm:text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1">
-                <CalendarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>{currentSlide.tanggal}</span>
+            <div className="text-center px-1 space-y-1">
+              {/* Distinct Status Badge (Sudah Lewat vs Belum Lewat) */}
+              <div className="flex items-center justify-center gap-1.5">
+                {currentSlide.status === 'past' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 inline-flex items-center gap-1 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>✓ Sudah Lewat (Selesai)</span>
+                  </span>
+                )}
+                {currentSlide.status === 'today' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-500/30 text-amber-300 border border-amber-400/50 inline-flex items-center gap-1 animate-pulse shadow-2xs">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>🔥 Hari Ini (Aktif)</span>
+                  </span>
+                )}
+                {currentSlide.status === 'future' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-blue-500/30 text-blue-300 border border-blue-400/50 inline-flex items-center gap-1 shadow-2xs">
+                    <Clock className="w-3.5 h-3.5 text-blue-400" />
+                    <span>⏳ Belum Lewat (Open PO)</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="text-[11px] sm:text-xs font-bold text-slate-300 flex items-center justify-center gap-1">
+                <CalendarIcon className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-white font-extrabold">{currentSlide.tanggal}</span>
                 <span className="text-slate-400 font-normal">
-                  ({activeSlideIndex + 1}/{dailySummaries.length})
+                  ({currentSlideIndex + 1}/{dailySummaries.length})
                 </span>
               </div>
+
               <div className="flex items-center justify-center gap-1.5">
                 <span className="text-2xl sm:text-4xl font-black text-amber-300 tracking-tight">
                   {currentSlide.totalQty} Cup
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-white/90">
-                  Terjual 🥭
+                  {currentSlide.status === 'future' ? 'Dipesan 🥭' : 'Terjual 🥭'}
                 </span>
               </div>
+
               <div className="text-[11px] sm:text-xs text-slate-300 truncate">
-                Omset: <span className="font-bold text-white">{formatRupiah(currentSlide.totalAmount)}</span>
+                {currentSlide.status === 'future' ? 'Potensi Omset:' : 'Total Omset:'}{' '}
+                <span className="font-bold text-white">{formatRupiah(currentSlide.totalAmount)}</span>
                 <span className="mx-1.5">•</span>
-                {currentSlide.orderCount} Transaksi
+                {currentSlide.orderCount} Pemesan
               </div>
             </div>
 
             <button
               type="button"
-              disabled={activeSlideIndex >= dailySummaries.length - 1}
-              onClick={() => setActiveSlideIndex((prev) => Math.min(dailySummaries.length - 1, prev + 1))}
+              disabled={currentSlideIndex >= dailySummaries.length - 1}
+              onClick={() => {
+                if (currentSlideIndex < dailySummaries.length - 1) {
+                  setSelectedSlideDate(dailySummaries[currentSlideIndex + 1].tanggal);
+                }
+              }}
               className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
               title="Hari Berikutnya"
             >
@@ -388,28 +499,103 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             </button>
           </div>
 
-          {/* Quick Date Slider Pills (Horizontal Slide Selector) */}
+          {/* Date Category Filter Tabs (Semua, Belum Lewat, Sudah Lewat) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setDateCategoryFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer flex items-center gap-1 shrink-0 ${
+                dateCategoryFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span>Semua Hari</span>
+              <span className="text-[10px] opacity-80">({dailySummaries.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDateCategoryFilter('future')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer flex items-center gap-1 shrink-0 ${
+                dateCategoryFilter === 'future'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+              }`}
+            >
+              <Clock className="w-3 h-3 text-blue-500" />
+              <span>Belum Lewat (Open PO)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                dateCategoryFilter === 'future' ? 'bg-blue-800 text-white' : 'bg-blue-200 text-blue-900'
+              }`}>
+                {upcomingDatesCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDateCategoryFilter('past')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer flex items-center gap-1 shrink-0 ${
+                dateCategoryFilter === 'past'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3 text-slate-500" />
+              <span>Sudah Lewat (Selesai)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                dateCategoryFilter === 'past' ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {pastDatesCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Quick Date Slider Pills (Horizontal Slide Selector with visual tags) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {dailySummaries.map((sum, idx) => {
-              const isActive = idx === activeSlideIndex;
+            {displayedSummaries.map((sum) => {
+              const isActive = sum.tanggal === currentSlide.tanggal;
+              const isPast = sum.status === 'past';
+              const isToday = sum.status === 'today';
+              const isFuture = sum.status === 'future';
+
               return (
                 <button
                   key={sum.tanggal}
                   type="button"
-                  onClick={() => setActiveSlideIndex(idx)}
+                  onClick={() => setSelectedSlideDate(sum.tanggal)}
                   className={`shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
                     isActive
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-2xs ring-2 ring-amber-300'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                      ? isFuture
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-xs ring-2 ring-blue-300'
+                        : isToday
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs ring-2 ring-amber-300'
+                        : 'bg-slate-800 text-white border-slate-900 shadow-xs ring-2 ring-slate-400'
+                      : isFuture
+                      ? 'bg-blue-50/90 text-blue-900 hover:bg-blue-100 border-blue-200'
+                      : isToday
+                      ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border-amber-300 font-bold'
+                      : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border-slate-200'
                   }`}
                 >
+                  {isFuture && <Clock className={`w-3 h-3 ${isActive ? 'text-white' : 'text-blue-600'}`} />}
+                  {isToday && <Sparkles className={`w-3 h-3 ${isActive ? 'text-white' : 'text-amber-500'}`} />}
+                  {isPast && <CheckCircle2 className={`w-3 h-3 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
+
                   <span>{sum.tanggal}</span>
+
                   <span
                     className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isActive ? 'bg-amber-900/40 text-amber-100' : 'bg-amber-100 text-amber-900'
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : isFuture
+                        ? 'bg-blue-200 text-blue-900'
+                        : isToday
+                        ? 'bg-amber-200 text-amber-900'
+                        : 'bg-slate-200 text-slate-700'
                     }`}
                   >
-                    {sum.totalQty}c
+                    {isFuture ? 'PO' : isToday ? 'Hari Ini' : 'Lewat'} • {sum.totalQty}c
                   </span>
                 </button>
               );
@@ -494,6 +680,10 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               {calendarGrid.map((cell, idx) => {
                 const hasSales = Boolean(cell.summary && cell.summary.totalQty > 0);
                 const isSelected = cell.summary && cell.summary.tanggal === calSelectedDateStr;
+                const cellStatus = cell.summary ? cell.summary.status : getDateStatus(cell.dateObj);
+                const isToday = cellStatus === 'today';
+                const isFuture = cellStatus === 'future';
+                const isPast = cellStatus === 'past';
 
                 return (
                   <div
@@ -506,32 +696,51 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     className={`min-h-[55px] sm:min-h-[85px] p-1 sm:p-2 transition flex flex-col justify-between ${
                       !cell.isCurrentMonth
                         ? 'bg-slate-50/50 text-slate-300 pointer-events-none'
+                        : isToday
+                        ? 'bg-amber-50/50'
+                        : hasSales && isFuture
+                        ? 'cursor-pointer hover:bg-blue-50/60'
                         : hasSales
-                        ? 'cursor-pointer hover:bg-amber-50/80'
+                        ? 'cursor-pointer hover:bg-amber-50/60'
                         : 'text-slate-400'
-                    } ${isSelected ? 'ring-2 ring-inset ring-amber-500 bg-amber-50/90' : ''}`}
+                    } ${isSelected ? 'ring-2 ring-inset ring-amber-500 bg-amber-50/90' : isToday ? 'ring-1 ring-inset ring-amber-400' : ''}`}
                   >
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-[10px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center ${
                           isSelected
                             ? 'bg-amber-500 text-white'
+                            : isToday
+                            ? 'bg-amber-500 text-white'
+                            : hasSales && isFuture
+                            ? 'bg-blue-600 text-white'
                             : hasSales
-                            ? 'bg-slate-800 text-white'
+                            ? 'bg-slate-700 text-white'
                             : 'text-slate-600'
                         }`}
                       >
                         {cell.dayNum}
                       </span>
                       {hasSales && cell.summary && cell.summary.unpaidQty > 0 && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Ada pesanan belum bayar" />
                       )}
                     </div>
 
                     {hasSales && cell.summary && (
                       <div className="mt-0.5 sm:mt-1 space-y-0.5">
-                        <div className="inline-block w-full text-center px-0.5 py-0.2 sm:px-1 sm:py-0.5 bg-amber-100 text-amber-950 font-black text-[9px] sm:text-xs rounded border border-amber-300 leading-tight">
-                          {cell.summary.totalQty}c
+                        <div
+                          className={`inline-block w-full text-center px-0.5 py-0.2 sm:px-1 sm:py-0.5 font-bold text-[9px] sm:text-xs rounded border leading-tight ${
+                            isFuture
+                              ? 'bg-blue-100 text-blue-950 border-blue-300'
+                              : isToday
+                              ? 'bg-amber-100 text-amber-950 border-amber-300'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <span>{cell.summary.totalQty}c</span>
+                          <span className="hidden sm:inline text-[9px] ml-0.5 opacity-80">
+                            {isFuture ? 'PO' : isToday ? 'Hari Ini' : 'Lewat'}
+                          </span>
                         </div>
                         <div className="hidden sm:block text-[10px] text-slate-500 text-center font-medium truncate">
                           {formatRupiah(cell.summary.totalAmount)}
@@ -562,6 +771,26 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   : 'Semua Pesanan'}
               </span>
             </h3>
+
+            {/* Indicator in header */}
+            {displayMode === 'slide' && currentSlide && (
+              <span
+                className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                  currentSlide.status === 'future'
+                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                    : currentSlide.status === 'today'
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}
+              >
+                {currentSlide.status === 'future'
+                  ? '⏳ Belum Lewat'
+                  : currentSlide.status === 'today'
+                  ? '🔥 Hari Ini'
+                  : '✓ Sudah Lewat'}
+              </span>
+            )}
+
             <span className="text-[10px] sm:text-xs bg-white border border-slate-200 px-2 py-0.5 rounded-full text-slate-600 font-semibold shrink-0">
               {activeOrdersForView.length} Pesanan
             </span>
@@ -601,6 +830,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
           ) : (
             activeOrdersForView.map((ord) => {
               const isPaid = ord.status === 'Paid';
+              const ordDateObj = parseDateString(ord.tanggal);
+              const ordDateStatus = getDateStatus(ordDateObj);
+
               return (
                 <div
                   key={ord.id}
@@ -608,7 +840,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5 flex-wrap">
                         <span>{ord.namaPemesan}</span>
                         {ord.batch && (
                           <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200">
@@ -616,8 +848,28 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {ord.tanggal} • Bayar: <span className="font-semibold text-slate-700">{ord.pembayaran}</span>
+
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1 flex-wrap">
+                        <span className="font-semibold text-slate-700">{ord.tanggal}</span>
+
+                        {ordDateStatus === 'past' && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            ✓ Sudah Lewat
+                          </span>
+                        )}
+                        {ordDateStatus === 'today' && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                            🔥 Hari Ini
+                          </span>
+                        )}
+                        {ordDateStatus === 'future' && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                            ⏳ Belum Lewat (PO)
+                          </span>
+                        )}
+
+                        <span>•</span>
+                        <span>Bayar: <strong className="text-slate-700">{ord.pembayaran}</strong></span>
                       </div>
                     </div>
 
@@ -672,6 +924,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
                 <tr>
+                  <th className="py-2.5 px-3">Tanggal Penjualan</th>
                   <th className="py-2.5 px-3">Pemesan</th>
                   <th className="py-2.5 px-3 text-center">Jumlah Cup</th>
                   <th className="py-2.5 px-3 text-right">Nominal</th>
@@ -684,15 +937,41 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {activeOrdersForView.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
                       Tidak ada transaksi pada tanggal ini atau filter yang dipilih.
                     </td>
                   </tr>
                 ) : (
                   activeOrdersForView.map((ord) => {
                     const isPaid = ord.status === 'Paid';
+                    const ordDateObj = parseDateString(ord.tanggal);
+                    const ordDateStatus = getDateStatus(ordDateObj);
+
                     return (
                       <tr key={ord.id} className="hover:bg-amber-50/40 transition-colors">
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <div className="font-bold text-slate-900">{ord.tanggal}</div>
+                          <div className="mt-0.5">
+                            {ordDateStatus === 'past' && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-slate-500" />
+                                <span>Sudah Lewat</span>
+                              </span>
+                            )}
+                            {ordDateStatus === 'today' && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                                <span>Hari Ini</span>
+                              </span>
+                            )}
+                            {ordDateStatus === 'future' && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                                <Clock className="w-2.5 h-2.5 text-blue-600" />
+                                <span>Belum Lewat (PO)</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-2 px-3 font-bold text-slate-900">
                           {ord.namaPemesan}
                         </td>
