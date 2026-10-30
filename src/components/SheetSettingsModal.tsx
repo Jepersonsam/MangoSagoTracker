@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Copy, Check, Info, Link2, Settings, ShieldAlert } from 'lucide-react';
+import {
+  X,
+  ExternalLink,
+  Copy,
+  Check,
+  Info,
+  Link2,
+  Settings,
+  ShieldAlert,
+  Wifi,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
+} from 'lucide-react';
 import { AuditLogTab } from './AuditLogTab';
 import { AuditLog, User } from '../types';
 
@@ -31,6 +44,10 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
   });
   const [copied, setCopied] = useState(false);
 
+  // Connection testing state
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testMessage, setTestMessage] = useState('');
+
   // Sync sheetIdInput when spreadsheetId changes
   React.useEffect(() => {
     setSheetIdInput(spreadsheetId);
@@ -40,6 +57,8 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
+      setTestStatus('idle');
+      setTestMessage('');
     }
   }, [isOpen, initialTab]);
 
@@ -54,87 +73,177 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
     onClose();
   };
 
-  const appsScriptCode = `// Pasang di Google Spreadsheet > Extensions > Apps Script
-// Simpan (Ctrl+S), lalu Deploy > Manage deployments > Edit > New version > Deploy (Access: Anyone)
+  const handleTestConnection = async () => {
+    const trimmed = webAppUrl.trim();
+    if (!trimmed) {
+      setTestStatus('error');
+      setTestMessage('Masukkan Web App URL terlebih dahulu.');
+      return;
+    }
 
-// 1. Menangani tes koneksi saat URL dibuka di browser
+    if (!trimmed.endsWith('/exec')) {
+      setTestStatus('error');
+      setTestMessage('URL tidak valid. Web App URL harus berakhiran "/exec", bukan "/edit".');
+      return;
+    }
+
+    setTestStatus('testing');
+    setTestMessage('Menguji koneksi ke Google Apps Script...');
+
+    try {
+      const response = await fetch(`${trimmed}?test=1`, {
+        method: 'GET',
+        mode: 'cors',
+      });
+
+      if (response.ok) {
+        const json = await response.json().catch(() => null);
+        if (json && json.status === 'online') {
+          setTestStatus('success');
+          setTestMessage('✅ Berhasil Terhubung! Google Apps Script online & siap sinkronisasi.');
+        } else {
+          setTestStatus('success');
+          setTestMessage('✅ Terhubung! Web App merespons dengan status 200 OK.');
+        }
+      } else {
+        setTestStatus('error');
+        setTestMessage(`Koneksi ditolak (Status ${response.status}). Pastikan hak akses diset "Anyone".`);
+      }
+    } catch (err: any) {
+      // Sometimes cors blocks read of doGet on redirect, but let's test if endpoint is reachable
+      setTestStatus('error');
+      setTestMessage('Koneksi gagal atau diblokir CORS. Pastikan "Who has access" diset ke "Anyone" saat Deploy.');
+    }
+  };
+
+  const appsScriptCode = `// ========================================================
+// GOOGLE APPS SCRIPT - MANGO SAGO TRACKER (2-WAY SYNC)
+// ========================================================
+
+// Helper untuk menemukan sheet berdasarkan ID unik (GID)
+function getSheetByGid(ss, gid) {
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (String(sheets[i].getSheetId()) === String(gid)) {
+      return sheets[i];
+    }
+  }
+  return null;
+}
+
+// 1. Menangani tes koneksi (GET) saat URL dibuka di browser
 function doGet(e) {
+  if (e && e.parameter && e.parameter.type) {
+    return handleRequest(e.parameter);
+  }
   return ContentService.createTextOutput(JSON.stringify({
     status: 'online',
     message: 'Google Apps Script Mango Tracker aktif dan siap menerima data!'
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// 2. Menangani input & update data dari website ke Google Sheet
+// 2. Menangani POST request dari website
 function doPost(e) {
+  var data = {};
+  if (e && e.postData && e.postData.contents) {
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch (err) {
+      data = e.parameter || {};
+    }
+  } else if (e && e.parameter) {
+    data = e.parameter;
+  }
+  return handleRequest(data);
+}
+
+// 3. Logika utama pemrosesan data ke Spreadsheet
+function handleRequest(data) {
   try {
-    var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // A. Tambah Pesanan Baru
+    // A. TAMBAH PESANAN BARU (GID: 351713628 / List Pemesan)
     if (data.type === 'order') {
-      var sheet = ss.getSheetByName('Pesanan') || ss.getSheets()[4];
+      var sheet = getSheetByGid(ss, '351713628') || 
+                  ss.getSheetByName('List Pemesan 26 Oct 26') || 
+                  ss.getSheetByName('Pesanan') || 
+                  ss.getSheets()[2];
+                  
       sheet.appendRow([
-        data.tanggal,
-        data.namaPemesan,
-        data.qty,
-        data.amount,
-        data.status,
-        data.note,
-        data.pembayaran,
+        data.tanggal || '',
+        data.namaPemesan || '',
+        data.qty || 1,
+        data.amount || 0,
+        data.status || 'Not Paid',
+        data.note || '',
+        data.pembayaran || '-',
         data.batch || ''
       ]);
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'order_created' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // B. Ubah Status Pesanan (Paid / Not Paid)
+    // B. UBAH STATUS PESANAN (Paid / Not Paid)
     if (data.type === 'update_status') {
-      var sheet = ss.getSheetByName('Pesanan') || ss.getSheets()[4];
+      var sheet = getSheetByGid(ss, '351713628') || 
+                  ss.getSheetByName('List Pemesan 26 Oct 26') || 
+                  ss.getSheetByName('Pesanan') || 
+                  ss.getSheets()[2];
+                  
       var values = sheet.getDataRange().getValues();
       var targetNama = String(data.namaPemesan || '').trim().toLowerCase();
       var targetTgl = String(data.tanggal || '').trim().toLowerCase();
       var updated = false;
 
-      // Loop dari baris 2 (index 1) untuk lewati baris header
+      // Cari baris pemesan (mulai dari baris 2 untuk lewati header)
       for (var r = 1; r < values.length; r++) {
         var rowTgl = String(values[r][0] || '').trim().toLowerCase();
         var rowNama = String(values[r][1] || '').trim().toLowerCase();
 
-        if (rowNama === targetNama && (!targetTgl || rowTgl === targetTgl)) {
-          // Kolom E (index 5) = Status
-          sheet.getRange(r + 1, 5).setValue(data.status);
-          // Kolom G (index 7) = Pembayaran
-          if (data.pembayaran) {
-            sheet.getRange(r + 1, 7).setValue(data.pembayaran);
+        if (rowNama === targetNama) {
+          if (!targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1) {
+            // Kolom E (index 5) = Paid/Not Paid
+            sheet.getRange(r + 1, 5).setValue(data.status);
+            // Kolom G (index 7) = Pembayaran
+            if (data.pembayaran) {
+              sheet.getRange(r + 1, 7).setValue(data.pembayaran);
+            }
+            updated = true;
+            break;
           }
-          updated = true;
-          break;
         }
       }
 
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success', updated: updated }))
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'status_updated', updated: updated }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // C. Tambah Pengeluaran / Belanja
+    // C. TAMBAH PENGELUARAN / BELANJA (GID: 784188198 / Pembelian Bahan)
     if (data.type === 'expense') {
-      var sheet = ss.getSheetByName('Pembelian') || ss.getSheets()[2];
+      var sheet = getSheetByGid(ss, '784188198') || 
+                  ss.getSheetByName('Pembelian Bahan ') || 
+                  ss.getSheetByName('Pembelian Bahan') || 
+                  ss.getSheetByName('Pembelian') || 
+                  ss.getSheets()[1];
+                  
       sheet.appendRow([
-        data.tanggal,
-        data.item,
-        data.unitPrice,
-        data.qty,
-        data.totalAmount,
+        data.tanggal || '',
+        data.item || '',
+        data.unitPrice || 0,
+        data.qty || 1,
+        data.totalAmount || 0,
         '',
         data.sisaQty || ''
       ]);
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'expense_created' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_type' }))
+    return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_type', data: data }))
       .setMimeType(ContentService.MimeType.JSON);
+      
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -156,10 +265,10 @@ function doPost(e) {
             <span className="text-lg">⚙️</span>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
-                Pengaturan Sistem & Integrasi
+                Pengaturan Sistem & Integrasi Google Sheet
               </h3>
               <p className="text-[11px] text-slate-500">
-                Kelola Google Sheet dan pantau rekam jejak aktivitas admin
+                Kelola sinkronisasi Google Sheet dan pantau audit log
               </p>
             </div>
           </div>
@@ -236,34 +345,71 @@ function doPost(e) {
                   </a>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Pastikan akses share Google Sheet diset: <strong>"Anyone with the link can view"</strong>.
+                  Akses share spreadsheet diset: <strong>"Anyone with the link can view"</strong>.
                 </p>
               </div>
 
               {/* Web App URL for 2-Way Sync */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <div className="space-y-1.5">
+                <label className="block font-semibold text-slate-700 flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Google Apps Script Web App URL (Untuk Tulis Otomatis)</span>
+                  <span>Google Apps Script Web App URL (Wajib untuk Tulis Otomatis)</span>
                 </label>
-                <input
-                  type="url"
-                  value={webAppUrl}
-                  onChange={(e) => setWebAppUrl(e.target.value)}
-                  placeholder="https://script.google.com/macros/s/AKfyc.../exec"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden font-mono text-[11px] bg-slate-50 focus:bg-white"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Tempelkan URL Web App dari Apps Script Anda di sini agar pesanan atau belanja baru otomatis tercatat ke baris Google Sheet.
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={webAppUrl}
+                    onChange={(e) => {
+                      setWebAppUrl(e.target.value);
+                      setTestStatus('idle');
+                    }}
+                    placeholder="https://script.google.com/macros/s/AKfyc.../exec"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden font-mono text-[11px] bg-slate-50 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={testStatus === 'testing' || !webAppUrl.trim()}
+                    className="px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg font-bold flex items-center gap-1.5 shrink-0 transition disabled:opacity-50 cursor-pointer text-xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${testStatus === 'testing' ? 'animate-spin' : ''}`} />
+                    <span>Tes Koneksi</span>
+                  </button>
+                </div>
+
+                {/* Test Feedback banner */}
+                {testStatus !== 'idle' && (
+                  <div
+                    className={`p-2.5 rounded-lg text-xs flex items-start gap-2 ${
+                      testStatus === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : testStatus === 'testing'
+                        ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {testStatus === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : testStatus === 'testing' ? (
+                      <RefreshCw className="w-4 h-4 text-blue-600 shrink-0 animate-spin mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <span className="font-medium leading-relaxed">{testMessage}</span>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-slate-500">
+                  Tempelkan Web App URL yang berakhiran <strong>/exec</strong>. Jika kosong, perubahan hanya tersimpan di browser.
                 </p>
               </div>
 
               {/* Apps Script Code snippet */}
-              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-amber-900 font-bold">
                     <Info className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Script Google Apps Script (Dengan doGet & doPost)</span>
+                    <span>Script Google Apps Script Terbaru (Otomatis Deteksi Sheet & GID)</span>
                   </div>
                   <button
                     type="button"
@@ -274,9 +420,21 @@ function doPost(e) {
                     <span>{copied ? 'Tersalin!' : 'Salin Script'}</span>
                   </button>
                 </div>
-                <p className="text-slate-600 leading-relaxed text-[11px]">
-                  Buka Google Sheet &gt; <strong>Extensions &gt; Apps Script</strong>, ganti kodenya dengan script di atas, simpan, lalu klik <strong>Deploy &gt; Manage deployments &gt; Edit &gt; New version &gt; Deploy</strong>.
-                </p>
+
+                <div className="text-slate-600 leading-relaxed text-[11px] space-y-1">
+                  <p>
+                    <strong>Cara Pasang / Update Script:</strong>
+                  </p>
+                  <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                    <li>Buka Spreadsheet &gt; <strong>Extensions &gt; Apps Script</strong>.</li>
+                    <li>Hapus semua kode lama, lalu tempel (*paste*) kode yang baru disalin.</li>
+                    <li>Simpan (<strong>Ctrl + S</strong>).</li>
+                    <li>Klik <strong>Deploy &gt; Manage deployments</strong> &gt; klik ikon <strong>Pensil (Edit)</strong>.</li>
+                    <li>Pada pilihan <strong>Version</strong>, pilih <strong>New version</strong>.</li>
+                    <li>Pastikan <strong>Who has access</strong> diset ke <strong>Anyone</strong>, lalu klik <strong>Deploy</strong>.</li>
+                    <li>Salin Web App URL yang dihasilkan, lalu tempel di kolom atas dan klik <strong>Simpan Pengaturan Sheet</strong>.</li>
+                  </ol>
+                </div>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
