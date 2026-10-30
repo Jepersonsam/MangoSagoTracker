@@ -252,10 +252,35 @@ export async function fetchCashflow(sheetId = SPREADSHEET_ID): Promise<CashflowI
   }
 }
 
-// Post data to Google Sheets via Google Apps Script Web App
-export async function postOrderToSheet(order: OrderItem) {
+// Post updated order status to Google Sheets via Google Apps Script Web App
+export async function postOrderStatusToSheet(order: OrderItem): Promise<boolean> {
   const url = localStorage.getItem('mango_apps_script_url');
-  if (!url || !url.startsWith('http')) return;
+  if (!url || !url.startsWith('http')) return false;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'update_status',
+        tanggal: order.tanggal,
+        namaPemesan: order.namaPemesan,
+        status: order.status,
+        pembayaran: order.pembayaran,
+      }),
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to update order status in sheet:', err);
+    return false;
+  }
+}
+
+// Post data to Google Sheets via Google Apps Script Web App
+export async function postOrderToSheet(order: OrderItem): Promise<boolean> {
+  const url = localStorage.getItem('mango_apps_script_url');
+  if (!url || !url.startsWith('http')) return false;
   try {
     await fetch(url, {
       method: 'POST',
@@ -273,14 +298,16 @@ export async function postOrderToSheet(order: OrderItem) {
         batch: order.batch || '',
       }),
     });
+    return true;
   } catch (err) {
     console.error('Failed to post order to sheet:', err);
+    return false;
   }
 }
 
-export async function postExpenseToSheet(expense: ExpenseItem) {
+export async function postExpenseToSheet(expense: ExpenseItem): Promise<boolean> {
   const url = localStorage.getItem('mango_apps_script_url');
-  if (!url || !url.startsWith('http')) return;
+  if (!url || !url.startsWith('http')) return false;
   try {
     await fetch(url, {
       method: 'POST',
@@ -296,8 +323,10 @@ export async function postExpenseToSheet(expense: ExpenseItem) {
         sisaQty: expense.sisaQty || '',
       }),
     });
+    return true;
   } catch (err) {
     console.error('Failed to post expense to sheet:', err);
+    return false;
   }
 }
 

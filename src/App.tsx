@@ -6,6 +6,7 @@ import {
   calculateMetrics,
   postOrderToSheet,
   postExpenseToSheet,
+  postOrderStatusToSheet,
   formatRupiah,
   SPREADSHEET_ID,
 } from './services/sheetsService';
@@ -168,23 +169,29 @@ export default function App() {
   const handleToggleStatus = (orderId: string) => {
     let changedOrderName = '';
     let nextStatus = '';
+    let updatedOrderObj: OrderItem | null = null;
 
     setOrders((prev) => {
       const updated = prev.map((ord) => {
         if (ord.id === orderId) {
           nextStatus = ord.status === 'Paid' ? 'Not Paid' : 'Paid';
           changedOrderName = ord.namaPemesan;
-          return {
+          updatedOrderObj = {
             ...ord,
             status: nextStatus,
             pembayaran: nextStatus === 'Paid' && ord.pembayaran === '-' ? 'BCA' : ord.pembayaran,
           };
+          return updatedOrderObj;
         }
         return ord;
       });
       setMetrics(calculateMetrics(updated, expenses, cashflow));
       return updated;
     });
+
+    if (updatedOrderObj) {
+      postOrderStatusToSheet(updatedOrderObj);
+    }
 
     logAudit(
       'UPDATE_ORDER',
@@ -193,7 +200,12 @@ export default function App() {
       `Status diperbarui menjadi: ${nextStatus} (ID: ${orderId})`
     );
 
-    showToast('Status pesanan berhasil diperbarui!');
+    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+    if (hasAppsScript) {
+      showToast(`Status ${changedOrderName} diperbarui & disinkronkan ke Google Sheet!`);
+    } else {
+      showToast(`Status ${changedOrderName} diperbarui di web (Masukkan Web App URL di ⚙️ agar terupdate di Google Sheet).`);
+    }
   };
 
   // Add New Order
@@ -212,7 +224,12 @@ export default function App() {
       `${newOrder.qty} cup • ${formatRupiah(newOrder.amount)} • Bayar: ${newOrder.pembayaran} • Batch: ${newOrder.batch || '-'}`
     );
 
-    showToast(`Pesanan untuk ${newOrder.namaPemesan} berhasil dicatat!`);
+    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+    if (hasAppsScript) {
+      showToast(`Pesanan untuk ${newOrder.namaPemesan} berhasil dicatat & dikirim ke Sheet!`);
+    } else {
+      showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat di web (Masukkan Web App URL di ⚙️ agar tercatat di Google Sheet).`);
+    }
   };
 
   // Add New Expense
@@ -231,7 +248,12 @@ export default function App() {
       `${newExpense.qty} item • ${formatRupiah(newExpense.totalAmount)} • Kategori: ${newExpense.category}`
     );
 
-    showToast(`Pengeluaran ${newExpense.item} berhasil dicatat!`);
+    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+    if (hasAppsScript) {
+      showToast(`Pengeluaran ${newExpense.item} berhasil dicatat & dikirim ke Sheet!`);
+    } else {
+      showToast(`Pengeluaran ${newExpense.item} dicatat di web (Masukkan Web App URL di ⚙️ agar tercatat di Google Sheet).`);
+    }
   };
 
   const handleSaveSheetId = (newId: string) => {

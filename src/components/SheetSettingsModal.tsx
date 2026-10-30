@@ -55,7 +55,7 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
   };
 
   const appsScriptCode = `// Pasang di Google Spreadsheet > Extensions > Apps Script
-// Simpan (Ctrl+S), lalu Deploy > New deployment > Web app (Access: Anyone)
+// Simpan (Ctrl+S), lalu Deploy > Manage deployments > Edit > New version > Deploy (Access: Anyone)
 
 // 1. Menangani tes koneksi saat URL dibuka di browser
 function doGet(e) {
@@ -65,12 +65,13 @@ function doGet(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// 2. Menangani input data baru dari website ke Google Sheet
+// 2. Menangani input & update data dari website ke Google Sheet
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
+    // A. Tambah Pesanan Baru
     if (data.type === 'order') {
       var sheet = ss.getSheetByName('Pesanan') || ss.getSheets()[4];
       sheet.appendRow([
@@ -83,7 +84,41 @@ function doPost(e) {
         data.pembayaran,
         data.batch || ''
       ]);
-    } else if (data.type === 'expense') {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // B. Ubah Status Pesanan (Paid / Not Paid)
+    if (data.type === 'update_status') {
+      var sheet = ss.getSheetByName('Pesanan') || ss.getSheets()[4];
+      var values = sheet.getDataRange().getValues();
+      var targetNama = String(data.namaPemesan || '').trim().toLowerCase();
+      var targetTgl = String(data.tanggal || '').trim().toLowerCase();
+      var updated = false;
+
+      // Loop dari baris 2 (index 1) untuk lewati baris header
+      for (var r = 1; r < values.length; r++) {
+        var rowTgl = String(values[r][0] || '').trim().toLowerCase();
+        var rowNama = String(values[r][1] || '').trim().toLowerCase();
+
+        if (rowNama === targetNama && (!targetTgl || rowTgl === targetTgl)) {
+          // Kolom E (index 5) = Status
+          sheet.getRange(r + 1, 5).setValue(data.status);
+          // Kolom G (index 7) = Pembayaran
+          if (data.pembayaran) {
+            sheet.getRange(r + 1, 7).setValue(data.pembayaran);
+          }
+          updated = true;
+          break;
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', updated: updated }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // C. Tambah Pengeluaran / Belanja
+    if (data.type === 'expense') {
       var sheet = ss.getSheetByName('Pembelian') || ss.getSheets()[2];
       sheet.appendRow([
         data.tanggal,
@@ -94,9 +129,11 @@ function doPost(e) {
         '',
         data.sisaQty || ''
       ]);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+    return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_type' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
