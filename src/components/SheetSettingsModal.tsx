@@ -213,6 +213,9 @@ function handleRequest(data) {
           if (tglMatches) {
             // Kolom E (index 5) = Paid/Not Paid
             sheet.getRange(r + 1, 5).setValue(data.status);
+            // Kolom F (index 6) = Catatan / Note (Dropdown: Sudah diterima / Belum diterima)
+            var targetNote = data.note || (data.status === 'Paid' ? 'Sudah diterima' : 'Belum diterima');
+            sheet.getRange(r + 1, 6).setValue(targetNote);
             // Kolom G (index 7) = Pembayaran
             if (data.pembayaran) {
               sheet.getRange(r + 1, 7).setValue(data.pembayaran);

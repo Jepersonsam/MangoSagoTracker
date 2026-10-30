@@ -176,9 +176,11 @@ export default function App() {
         if (ord.id === orderId) {
           nextStatus = ord.status === 'Paid' ? 'Not Paid' : 'Paid';
           changedOrderName = ord.namaPemesan;
+          const nextNote = nextStatus === 'Paid' ? 'Sudah diterima' : 'Belum diterima';
           updatedOrderObj = {
             ...ord,
             status: nextStatus,
+            note: nextNote,
             pembayaran: nextStatus === 'Paid' && ord.pembayaran === '-' ? 'BCA' : ord.pembayaran,
           };
           return updatedOrderObj;

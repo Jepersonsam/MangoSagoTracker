@@ -40,9 +40,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [namaPemesan, setNamaPemesan] = useState('');
   const [qty, setQty] = useState(1);
   const [unitPrice, setUnitPrice] = useState(21000);
-  const [status, setStatus] = useState<'Paid' | 'Not Paid'>('Paid');
+  const [status, setStatus] = useState<'Paid' | 'Not Paid'>('Not Paid');
   const [pembayaran, setPembayaran] = useState('BCA');
-  const [note, setNote] = useState('Sudah diterima');
+  const [note, setNote] = useState('Belum diterima');
+  const [isCustomNote, setIsCustomNote] = useState(false);
+  const [customNoteText, setCustomNoteText] = useState('');
   const [batch, setBatch] = useState('Pagi');
 
   if (!isOpen) return null;
@@ -54,6 +56,8 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
     e.preventDefault();
     if (!namaPemesan.trim()) return;
 
+    const finalNote = isCustomNote ? (customNoteText.trim() || 'Belum diterima') : note;
+
     const newOrder: OrderItem = {
       id: `ord-local-${Date.now()}`,
       tanggal: formattedSheetDate,
@@ -62,7 +66,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       amount: totalAmount,
       status,
       pembayaran: status === 'Paid' ? pembayaran : '-',
-      note,
+      note: finalNote,
       batch,
     };
 
@@ -194,7 +198,13 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
               <label className="block font-semibold text-slate-700 mb-1">Status Pembayaran</label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => {
+                  const newStatus = e.target.value as 'Paid' | 'Not Paid';
+                  setStatus(newStatus);
+                  if (!isCustomNote) {
+                    setNote(newStatus === 'Paid' ? 'Sudah diterima' : 'Belum diterima');
+                  }
+                }}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden bg-white"
               >
                 <option value="Paid">Paid (Lunas)</option>
@@ -233,13 +243,33 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Catatan</label>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Sudah diterima / Titip security"
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden"
-              />
+              <select
+                value={isCustomNote ? '__custom__' : note}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomNote(true);
+                  } else {
+                    setIsCustomNote(false);
+                    setNote(e.target.value);
+                  }
+                }}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden bg-white font-medium text-slate-700 cursor-pointer"
+              >
+                <option value="Belum diterima">Belum diterima</option>
+                <option value="Sudah diterima">Sudah diterima</option>
+                <option value="__custom__">Lainnya (Ketik sendiri)...</option>
+              </select>
+
+              {isCustomNote && (
+                <input
+                  type="text"
+                  value={customNoteText}
+                  onChange={(e) => setCustomNoteText(e.target.value)}
+                  placeholder="Ketik catatan khusus..."
+                  className="w-full mt-2 px-3 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden text-xs bg-amber-50/30"
+                  autoFocus
+                />
+              )}
             </div>
           </div>
 

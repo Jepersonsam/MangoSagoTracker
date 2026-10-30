@@ -263,6 +263,7 @@ export async function postOrderStatusToSheet(order: OrderItem): Promise<boolean>
     namaPemesan: order.namaPemesan,
     status: order.status,
     pembayaran: order.pembayaran || '',
+    note: order.note || '',
   });
 
   const fullUrl = `${url}?${params.toString()}`;
@@ -278,6 +279,7 @@ export async function postOrderStatusToSheet(order: OrderItem): Promise<boolean>
         namaPemesan: order.namaPemesan,
         status: order.status,
         pembayaran: order.pembayaran,
+        note: order.note || '',
       }),
     });
     return true;
