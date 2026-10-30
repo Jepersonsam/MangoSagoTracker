@@ -257,11 +257,21 @@ export async function postOrderStatusToSheet(order: OrderItem): Promise<boolean>
   const url = localStorage.getItem('mango_apps_script_url');
   if (!url || !url.startsWith('http')) return false;
 
+  const params = new URLSearchParams({
+    type: 'update_status',
+    tanggal: order.tanggal,
+    namaPemesan: order.namaPemesan,
+    status: order.status,
+    pembayaran: order.pembayaran || '',
+  });
+
+  const fullUrl = `${url}?${params.toString()}`;
+
   try {
-    await fetch(url, {
+    await fetch(fullUrl, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         type: 'update_status',
         tanggal: order.tanggal,
@@ -281,11 +291,26 @@ export async function postOrderStatusToSheet(order: OrderItem): Promise<boolean>
 export async function postOrderToSheet(order: OrderItem): Promise<boolean> {
   const url = localStorage.getItem('mango_apps_script_url');
   if (!url || !url.startsWith('http')) return false;
+
+  const params = new URLSearchParams({
+    type: 'order',
+    tanggal: order.tanggal,
+    namaPemesan: order.namaPemesan,
+    qty: String(order.qty),
+    amount: String(order.amount),
+    status: order.status,
+    note: order.note || '',
+    pembayaran: order.pembayaran || '',
+    batch: order.batch || '',
+  });
+
+  const fullUrl = `${url}?${params.toString()}`;
+
   try {
-    await fetch(url, {
+    await fetch(fullUrl, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         type: 'order',
         tanggal: order.tanggal,
@@ -308,11 +333,24 @@ export async function postOrderToSheet(order: OrderItem): Promise<boolean> {
 export async function postExpenseToSheet(expense: ExpenseItem): Promise<boolean> {
   const url = localStorage.getItem('mango_apps_script_url');
   if (!url || !url.startsWith('http')) return false;
+
+  const params = new URLSearchParams({
+    type: 'expense',
+    tanggal: expense.tanggal,
+    item: expense.item,
+    unitPrice: String(expense.unitPrice),
+    qty: String(expense.qty),
+    totalAmount: String(expense.totalAmount),
+    sisaQty: String(expense.sisaQty || ''),
+  });
+
+  const fullUrl = `${url}?${params.toString()}`;
+
   try {
-    await fetch(url, {
+    await fetch(fullUrl, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         type: 'expense',
         tanggal: expense.tanggal,

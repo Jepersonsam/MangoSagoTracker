@@ -191,6 +191,7 @@ export default function App() {
 
     if (updatedOrderObj) {
       postOrderStatusToSheet(updatedOrderObj);
+      setTimeout(() => loadData(true), 2000);
     }
 
     logAudit(
@@ -216,6 +217,7 @@ export default function App() {
       return updated;
     });
     postOrderToSheet(newOrder);
+    setTimeout(() => loadData(true), 2500);
 
     logAudit(
       'CREATE_ORDER',
@@ -240,6 +242,7 @@ export default function App() {
       return updated;
     });
     postExpenseToSheet(newExpense);
+    setTimeout(() => loadData(true), 2500);
 
     logAudit(
       'CREATE_EXPENSE',
