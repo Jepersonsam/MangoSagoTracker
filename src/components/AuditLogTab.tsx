@@ -184,7 +184,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
                 title="Hanya Admin Sam yang berwenang mereset riwayat audit log"
               >
                 <Lock className="w-3 h-3 text-slate-400" />
-                <span>Reset Log (Khusus Sam)</span>
+                <span>Reset Log</span>
               </div>
             )}
           </div>
