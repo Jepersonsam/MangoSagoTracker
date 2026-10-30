@@ -120,8 +120,20 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
 // GOOGLE APPS SCRIPT - MANGO SAGO TRACKER (2-WAY SYNC)
 // ========================================================
 
+var SPREADSHEET_ID = '${spreadsheetId}';
+
+// Helper membuka spreadsheet (mendukung Standalone & Bound script)
+function getSpreadsheet() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) return ss;
+  } catch (e) {}
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
 // Helper untuk menemukan sheet berdasarkan ID unik (GID)
 function getSheetByGid(ss, gid) {
+  if (!ss) return null;
   var sheets = ss.getSheets();
   for (var i = 0; i < sheets.length; i++) {
     if (String(sheets[i].getSheetId()) === String(gid)) {
@@ -160,7 +172,11 @@ function doPost(e) {
 // 3. Logika utama pemrosesan data ke Spreadsheet
 function handleRequest(data) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Spreadsheet tidak ditemukan' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     // A. TAMBAH PESANAN BARU (GID: 351713628 / List Pemesan)
     if (data.type === 'order') {
