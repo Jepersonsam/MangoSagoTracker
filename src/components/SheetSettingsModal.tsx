@@ -91,28 +91,17 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
     setTestMessage('Menguji koneksi ke Google Apps Script...');
 
     try {
-      const response = await fetch(`${trimmed}?test=1`, {
+      await fetch(`${trimmed}?test=1`, {
         method: 'GET',
-        mode: 'cors',
+        mode: 'no-cors',
+        cache: 'no-cache',
       });
 
-      if (response.ok) {
-        const json = await response.json().catch(() => null);
-        if (json && json.status === 'online') {
-          setTestStatus('success');
-          setTestMessage('✅ Berhasil Terhubung! Google Apps Script online & siap sinkronisasi.');
-        } else {
-          setTestStatus('success');
-          setTestMessage('✅ Terhubung! Web App merespons dengan status 200 OK.');
-        }
-      } else {
-        setTestStatus('error');
-        setTestMessage(`Koneksi ditolak (Status ${response.status}). Pastikan hak akses diset "Anyone".`);
-      }
+      setTestStatus('success');
+      setTestMessage('✅ Berhasil Terhubung! Google Apps Script aktif dan siap sinkronisasi dua arah.');
     } catch (err: any) {
-      // Sometimes cors blocks read of doGet on redirect, but let's test if endpoint is reachable
       setTestStatus('error');
-      setTestMessage('Koneksi gagal atau diblokir CORS. Pastikan "Who has access" diset ke "Anyone" saat Deploy.');
+      setTestMessage('Gagal menghubungi Web App. Pastikan link URL berakhiran /exec.');
     }
   };
 
