@@ -196,18 +196,21 @@ function handleRequest(data) {
                   ss.getSheetByName('Pesanan') || 
                   ss.getSheets()[2];
                   
-      var values = sheet.getDataRange().getValues();
+      // Gunakan getDisplayValues() agar tanggal dibaca sebagai teks biasa, BUKAN Date object!
+      var displayValues = sheet.getDataRange().getDisplayValues();
       var targetNama = String(data.namaPemesan || '').trim().toLowerCase();
       var targetTgl = String(data.tanggal || '').trim().toLowerCase();
       var updated = false;
 
-      // Cari baris pemesan (mulai dari baris 2 untuk lewati header)
-      for (var r = 1; r < values.length; r++) {
-        var rowTgl = String(values[r][0] || '').trim().toLowerCase();
-        var rowNama = String(values[r][1] || '').trim().toLowerCase();
+      // Cari baris pemesan dari baris paling bawah ke atas (agar ketemu pesanan terbaru)
+      for (var r = displayValues.length - 1; r >= 1; r--) {
+        var rowTgl = String(displayValues[r][0] || '').trim().toLowerCase();
+        var rowNama = String(displayValues[r][1] || '').trim().toLowerCase();
 
         if (rowNama === targetNama) {
-          if (!targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1) {
+          // Cocokkan tanggal jika ada, atau jika nama sudah cocok langsung update
+          var tglMatches = !targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1;
+          if (tglMatches) {
             // Kolom E (index 5) = Paid/Not Paid
             sheet.getRange(r + 1, 5).setValue(data.status);
             // Kolom G (index 7) = Pembayaran
