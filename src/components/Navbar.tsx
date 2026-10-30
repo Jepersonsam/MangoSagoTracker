@@ -128,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm shadow-amber-500/20 transition active:scale-95 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">+ Pesanan</span>
+              <span className="hidden xs:inline sm:inline">+</span>
               <span className="xs:hidden">Pesanan</span>
             </button>
 
