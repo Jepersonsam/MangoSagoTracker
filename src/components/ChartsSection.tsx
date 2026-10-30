@@ -58,9 +58,9 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
       {/* Chart 1: Penjualan per Tanggal */}
-      <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs">
+      <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-xs min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-bold text-slate-900">
@@ -75,7 +75,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
           </span>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-56 sm:h-64 w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={salesByDate} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
@@ -105,7 +105,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
       </div>
 
       {/* Chart 2: Komposisi Pengeluaran */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between min-w-0">
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>

@@ -53,9 +53,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col lg:flex-row selection:bg-amber-100 selection:text-amber-900">
       {/* ========================================================= */}
-      {/* LEFT COLUMN: HERO FULL SCREEN BRANDING (ON DESKTOP/TABLET)*/}
+      {/* LEFT COLUMN: HERO FULL SCREEN BRANDING (DESKTOP/TABLET)   */}
       {/* ========================================================= */}
-      <div className="lg:w-1/2 xl:w-7/12 bg-linear-to-br from-amber-500 via-orange-500 to-amber-600 text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-linear-to-br from-amber-500 via-orange-500 to-amber-600 text-white p-8 sm:p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
         {/* Glow & Blurred Decors */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-black/10 blur-3xl pointer-events-none" />
@@ -67,7 +67,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tight leading-tight">
-              Mango Tracker
+              Mango Sago Tracker
             </h1>
             <p className="text-xs text-amber-100 font-medium">
               Live Google Sheets Sales & Expense Ecosystem
@@ -76,7 +76,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Middle Feature Showcase */}
-        <div className="my-10 lg:my-auto space-y-6 relative z-10">
+        <div className="my-auto space-y-6 relative z-10 py-8">
           <div className="space-y-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md text-amber-100 border border-white/20">
               <Sparkles className="w-3.5 h-3.5" />
@@ -137,18 +137,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* ========================================================= */}
-      {/* RIGHT COLUMN: LOGIN FORM ONLY (CLEAN & PROFESSIONAL)      */}
+      {/* RIGHT COLUMN: LOGIN FORM (OPTIMIZED FOR MOBILE & DESKTOP) */}
       {/* ========================================================= */}
-      <div className="lg:w-1/2 xl:w-5/12 bg-white flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-12 overflow-y-auto">
-        <div className="w-full max-w-md mx-auto space-y-6">
+      <div className="w-full lg:w-1/2 xl:w-5/12 bg-white flex flex-col justify-center px-5 sm:px-10 lg:px-14 py-8 sm:py-12 min-h-screen">
+        <div className="w-full max-w-sm sm:max-w-md mx-auto space-y-6">
+          {/* Mobile Top Brand Header (Hanya Tampil di Layar HP) */}
+          <div className="lg:hidden text-center space-y-2 mb-2">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-200 text-3xl shadow-xs">
+              🥭
+            </div>
+            <h1 className="text-xl font-extrabold text-slate-900">Mango Sago Tracker</h1>
+            <p className="text-xs text-slate-500">Pencatatan Penjualan & Pengeluaran Realtime</p>
+          </div>
+
           {/* Header on form */}
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 mb-2">
-              <span>👑</span> Khusus Admin
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 mb-2">
+              <span>👑</span> Khusus Admin (Ebi, Tia, Sam)
             </div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Masuk ke Dashboard
-            </h3>
+            </h2>
             <p className="text-xs text-slate-500 mt-1">
               Silakan masukkan akun admin Anda untuk mengelola sistem.
             </p>
@@ -175,7 +184,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Username (Ebi, Tia, Sam) atau email"
+                  placeholder="Ketik: ebi, tia, atau sam"
                   className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition text-slate-800 font-medium"
                 />
               </div>
@@ -239,9 +248,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           {/* Security footnote */}
           <div className="text-center pt-4 border-t border-slate-100">
-            <div className="inline-flex items-center gap-2 text-xs text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Sistem terproteksi khusus pengelola toko</span>
+            <div className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Sistem privat terlindungi & data terenkripsi lokal</span>
             </div>
           </div>
         </div>

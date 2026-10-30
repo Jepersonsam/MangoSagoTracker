@@ -294,7 +294,7 @@ export default function App() {
       />
 
       {/* Main Container (Full Screen) */}
-      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
+      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1">
         {/* KPI Metric Cards */}
         <MetricCards metrics={metrics} />
 
@@ -302,19 +302,19 @@ export default function App() {
         <ChartsSection orders={orders} expenses={expenses} />
 
         {/* Tab Navigation */}
-        <div className="flex items-center justify-between border-b border-slate-200 pt-2">
-          <div className="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1 scrollbar-thin">
+        <div className="flex items-center justify-between border-b border-slate-200 pt-1 sm:pt-2 overflow-x-auto scrollbar-none">
+          <div className="flex space-x-1 sm:space-x-4 pb-1 shrink-0">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'orders'
                   ? 'border-amber-500 text-amber-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
-              <span>Penjualan / Pesanan</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              <span>Penjualan</span>
+              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
                 activeTab === 'orders' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {orders.length}
@@ -323,15 +323,15 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('expenses')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'expenses'
                   ? 'border-rose-500 text-rose-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Pembelian & Pengeluaran</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              <span>Pengeluaran</span>
+              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
                 activeTab === 'expenses' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {expenses.length}
@@ -340,15 +340,15 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('cashflow')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'cashflow'
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <Landmark className="w-4 h-4" />
-              <span>Buku Kas (Cash Flow)</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              <span>Buku Kas</span>
+              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
                 activeTab === 'cashflow' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {cashflow.length}
@@ -358,15 +358,15 @@ export default function App() {
             {/* AUDIT LOG TAB */}
             <button
               onClick={() => setActiveTab('audit')}
-              className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === 'audit'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <ShieldAlert className="w-4 h-4" />
-              <span>Audit Log (Rekam Jejak)</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              <span>Audit Log</span>
+              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
                 activeTab === 'audit' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {auditLogs.length}

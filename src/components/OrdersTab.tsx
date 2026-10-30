@@ -42,7 +42,6 @@ interface DateSummary {
   orders: OrderItem[];
 }
 
-// Helper to parse dates like "26 Oct 26", "3 Nov 26", "2026-10-26"
 function parseDateString(dateStr: string): Date | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
@@ -76,14 +75,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Not Paid'>('All');
 
-  // Slide state: active date index
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  // Calendar state: year & month
-  const [calDate, setCalDate] = useState(() => new Date(2026, 10, 1)); // Default Nov 2026
+  const [calDate, setCalDate] = useState(() => new Date(2026, 10, 1));
   const [calSelectedDateStr, setCalSelectedDateStr] = useState<string | null>(null);
 
-  // Group and aggregate orders by date
   const dailySummaries: DateSummary[] = useMemo(() => {
     const map = new Map<string, DateSummary>();
 
@@ -132,7 +128,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     });
 
     const list = Array.from(map.values());
-    // Sort chronologically if possible, otherwise by original appearance
     list.sort((a, b) => {
       if (a.dateObj && b.dateObj) return a.dateObj.getTime() - b.dateObj.getTime();
       return 0;
@@ -141,10 +136,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return list;
   }, [orders]);
 
-  // Sync active slide index within bounds
   const currentSlide = dailySummaries[activeSlideIndex] || dailySummaries[0];
 
-  // Calendar date mapping (key: "YYYY-M-D")
   const dateSummaryMap = useMemo(() => {
     const m = new Map<string, DateSummary>();
     dailySummaries.forEach((sum) => {
@@ -156,7 +149,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return m;
   }, [dailySummaries]);
 
-  // Calendar days calculation
   const calendarGrid = useMemo(() => {
     const year = calDate.getFullYear();
     const month = calDate.getMonth();
@@ -164,7 +156,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
 
-    // Days in week: Monday = 0, Sunday = 6
     let startDayOfWeek = firstDayOfMonth.getDay() - 1;
     if (startDayOfWeek === -1) startDayOfWeek = 6;
 
@@ -177,7 +168,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       isCurrentMonth: boolean;
     }[] = [];
 
-    // Empty lead cells
     for (let i = 0; i < startDayOfWeek; i++) {
       const prevDate = new Date(year, month, 1 - (startDayOfWeek - i));
       cells.push({
@@ -187,7 +177,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       });
     }
 
-    // Days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const thisDate = new Date(year, month, day);
       const key = `${year}-${month}-${day}`;
@@ -203,7 +192,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return cells;
   }, [calDate, dateSummaryMap]);
 
-  // Orders to display based on current active view
   const activeOrdersForView = useMemo(() => {
     let baseOrders: OrderItem[] = [];
 
@@ -214,11 +202,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
         const found = dailySummaries.find((s) => s.tanggal === calSelectedDateStr);
         baseOrders = found ? found.orders : [];
       } else if (dailySummaries.length > 0) {
-        // default to latest date or first
         baseOrders = dailySummaries[dailySummaries.length - 1].orders;
       }
     } else {
-      // Table view displays all
       baseOrders = orders;
     }
 
@@ -256,7 +242,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     document.body.removeChild(link);
   };
 
-  // Month navigation for Calendar
   const handlePrevMonth = () => {
     setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
@@ -267,125 +252,127 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const calMonthTitle = calDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden space-y-0">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden space-y-0">
       {/* Top Header & View Switcher */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 bg-linear-to-r from-amber-50/50 via-white to-orange-50/30">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-3.5 sm:p-5 border-b border-slate-200 bg-linear-to-r from-amber-50/50 via-white to-orange-50/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">
                 Penjualan & Rekap Harian
               </h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                🥭 {dailySummaries.length} Tanggal Terdata
+              <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                🥭 {dailySummaries.length} Hari
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pilih mode slide per tanggal atau tampilan kalender agar tidak scroll panjang ke bawah.
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Pilih mode slide per tanggal atau tampilan kalender agar ringkas di HP.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2">
             {/* View Mode Toggle */}
-            <div className="flex items-center p-1 bg-slate-100/90 rounded-xl text-xs font-semibold">
+            <div className="flex items-center p-0.5 sm:p-1 bg-slate-100 rounded-xl text-[11px] sm:text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setDisplayMode('slide')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   displayMode === 'slide'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Slide Harian</span>
+                <SlidersHorizontal className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Slide</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setDisplayMode('calendar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   displayMode === 'calendar'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <CalendarIcon className="w-3.5 h-3.5" />
+                <CalendarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Kalender</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setDisplayMode('table')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   displayMode === 'table'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span>Tabel Lengkap</span>
+                <TableIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Tabel</span>
               </button>
             </div>
 
-            <button
-              onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleExportCsv}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
 
-            <button
-              onClick={onOpenNewOrder}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-xs transition"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Pesanan Baru</span>
-            </button>
+              <button
+                onClick={onOpenNewOrder}
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Pesanan</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ======================================================== */}
-      {/* 1. SLIDE HARIAN MODE (TIDAK PANJANG KE BAWAH)           */}
+      {/* 1. SLIDE HARIAN MODE (MOBILE RESPONSIVE HERO)            */}
       {/* ======================================================== */}
       {displayMode === 'slide' && currentSlide && (
-        <div className="p-4 sm:p-5 space-y-4">
+        <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
           {/* Slide Navigation Header */}
-          <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+          <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl p-3 sm:p-5 shadow-md relative overflow-hidden">
             <div className="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
 
             <button
               type="button"
               disabled={activeSlideIndex <= 0}
               onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
+              title="Hari Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Hari Sebelumnya</span>
             </button>
 
             {/* Slide Center Info */}
-            <div className="text-center px-2 space-y-1">
-              <div className="text-[11px] font-bold text-amber-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>Tanggal {currentSlide.tanggal}</span>
+            <div className="text-center px-1 space-y-0.5 sm:space-y-1">
+              <div className="text-[10px] sm:text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1">
+                <CalendarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>{currentSlide.tanggal}</span>
                 <span className="text-slate-400 font-normal">
-                  ({activeSlideIndex + 1} dari {dailySummaries.length} hari)
+                  ({activeSlideIndex + 1}/{dailySummaries.length})
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-1.5">
                 <span className="text-2xl sm:text-4xl font-black text-amber-300 tracking-tight">
                   {currentSlide.totalQty} Cup
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-white/90">
-                  Total Terjual 🥭
+                  Terjual 🥭
                 </span>
               </div>
-              <div className="text-xs text-slate-300">
-                Total Omset: <span className="font-bold text-white">{formatRupiah(currentSlide.totalAmount)}</span>
-                <span className="mx-2">•</span>
+              <div className="text-[11px] sm:text-xs text-slate-300 truncate">
+                Omset: <span className="font-bold text-white">{formatRupiah(currentSlide.totalAmount)}</span>
+                <span className="mx-1.5">•</span>
                 {currentSlide.orderCount} Transaksi
               </div>
             </div>
@@ -394,18 +381,15 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               type="button"
               disabled={activeSlideIndex >= dailySummaries.length - 1}
               onClick={() => setActiveSlideIndex((prev) => Math.min(dailySummaries.length - 1, prev + 1))}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition text-xs font-semibold shrink-0 cursor-pointer"
+              title="Hari Berikutnya"
             >
-              <span className="hidden sm:inline">Hari Berikutnya</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Quick Date Slider Pills (Horizontal Slide Selector) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-1">
-              Pilih Hari:
-            </span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             {dailySummaries.map((sum, idx) => {
               const isActive = idx === activeSlideIndex;
               return (
@@ -413,54 +397,54 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   key={sum.tanggal}
                   type="button"
                   onClick={() => setActiveSlideIndex(idx)}
-                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-2 cursor-pointer ${
+                  className={`shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
                     isActive
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-2xs ring-2 ring-amber-300'
                       : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
                   }`}
                 >
                   <span>{sum.tanggal}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                       isActive ? 'bg-amber-900/40 text-amber-100' : 'bg-amber-100 text-amber-900'
                     }`}
                   >
-                    {sum.totalQty} cup
+                    {sum.totalQty}c
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Sub-metrics Summary Bar for this slide */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-              <div className="text-[11px] text-amber-800 font-medium">Total Terjual</div>
-              <div className="text-lg font-extrabold text-amber-950">{currentSlide.totalQty} Cup</div>
-              <div className="text-[10px] text-amber-700">{formatRupiah(currentSlide.totalAmount)}</div>
+          {/* Sub-metrics Summary Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="p-2.5 sm:p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="text-[10px] sm:text-[11px] text-amber-800 font-medium">Total Terjual</div>
+              <div className="text-base sm:text-lg font-extrabold text-amber-950">{currentSlide.totalQty} Cup</div>
+              <div className="text-[10px] text-amber-700 truncate">{formatRupiah(currentSlide.totalAmount)}</div>
             </div>
 
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <div className="text-[11px] text-emerald-800 font-medium">Terbayar (Lunas)</div>
-              <div className="text-lg font-extrabold text-emerald-950">{currentSlide.paidQty} Cup</div>
-              <div className="text-[10px] text-emerald-700">{formatRupiah(currentSlide.paidAmount)}</div>
+            <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <div className="text-[10px] sm:text-[11px] text-emerald-800 font-medium">Lunas (Paid)</div>
+              <div className="text-base sm:text-lg font-extrabold text-emerald-950">{currentSlide.paidQty} Cup</div>
+              <div className="text-[10px] text-emerald-700 truncate">{formatRupiah(currentSlide.paidAmount)}</div>
             </div>
 
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl">
-              <div className="text-[11px] text-rose-800 font-medium">Belum Bayar</div>
-              <div className="text-lg font-extrabold text-rose-950">{currentSlide.unpaidQty} Cup</div>
-              <div className="text-[10px] text-rose-700">{formatRupiah(currentSlide.unpaidAmount)}</div>
+            <div className="p-2.5 sm:p-3 bg-rose-50 border border-rose-200 rounded-xl">
+              <div className="text-[10px] sm:text-[11px] text-rose-800 font-medium">Belum Bayar</div>
+              <div className="text-base sm:text-lg font-extrabold text-rose-950">{currentSlide.unpaidQty} Cup</div>
+              <div className="text-[10px] text-rose-700 truncate">{formatRupiah(currentSlide.unpaidAmount)}</div>
             </div>
 
-            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
+            <div className="p-2.5 sm:p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
               <div>
-                <div className="text-[11px] text-indigo-800 font-medium">Kloter Batch</div>
-                <div className="text-xs font-bold text-indigo-950 mt-1 flex flex-col gap-0.5">
+                <div className="text-[10px] sm:text-[11px] text-indigo-800 font-medium">Batch / Waktu</div>
+                <div className="text-[11px] font-bold text-indigo-950 mt-0.5 flex flex-col gap-0.5">
                   <span className="flex items-center gap-1">
-                    <Sun className="w-3 h-3 text-amber-500" /> Pagi: {currentSlide.pagiQty} cup
+                    <Sun className="w-3 h-3 text-amber-500" /> Pagi: {currentSlide.pagiQty}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Moon className="w-3 h-3 text-purple-500" /> Malam: {currentSlide.malamQty} cup
+                    <Moon className="w-3 h-3 text-purple-500" /> Malam: {currentSlide.malamQty}
                   </span>
                 </div>
               </div>
@@ -470,12 +454,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       )}
 
       {/* ======================================================== */}
-      {/* 2. KALENDER MODE (GRID BULANAN)                         */}
+      {/* 2. KALENDER MODE (GRID BULANAN RESPONSIVE)               */}
       {/* ======================================================== */}
       {displayMode === 'calendar' && (
-        <div className="p-4 sm:p-5 space-y-4">
-          {/* Calendar Month Header */}
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:p-3">
             <button
               onClick={handlePrevMonth}
               className="p-1.5 rounded-lg hover:bg-slate-200 transition text-slate-700 cursor-pointer"
@@ -483,8 +466,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-amber-500" />
+            <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+              <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
               <span>{calMonthTitle}</span>
             </div>
 
@@ -496,10 +479,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             </button>
           </div>
 
-          {/* 7-Days Calendar Grid */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-            {/* Weekday Labels */}
-            <div className="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-[11px] font-bold text-slate-600 py-2">
+          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+            <div className="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-[10px] sm:text-[11px] font-bold text-slate-600 py-1.5 sm:py-2">
               <span>Sen</span>
               <span>Sel</span>
               <span>Rab</span>
@@ -509,12 +490,10 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <span className="text-rose-500">Min</span>
             </div>
 
-            {/* Day Cells */}
             <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 bg-white">
               {calendarGrid.map((cell, idx) => {
                 const hasSales = Boolean(cell.summary && cell.summary.totalQty > 0);
-                const isSelected =
-                  cell.summary && cell.summary.tanggal === calSelectedDateStr;
+                const isSelected = cell.summary && cell.summary.tanggal === calSelectedDateStr;
 
                 return (
                   <div
@@ -524,19 +503,17 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         setCalSelectedDateStr(cell.summary.tanggal);
                       }
                     }}
-                    className={`min-h-[75px] sm:min-h-[85px] p-1.5 sm:p-2 transition flex flex-col justify-between ${
+                    className={`min-h-[55px] sm:min-h-[85px] p-1 sm:p-2 transition flex flex-col justify-between ${
                       !cell.isCurrentMonth
                         ? 'bg-slate-50/50 text-slate-300 pointer-events-none'
                         : hasSales
                         ? 'cursor-pointer hover:bg-amber-50/80'
                         : 'text-slate-400'
-                    } ${
-                      isSelected ? 'ring-2 ring-inset ring-amber-500 bg-amber-50/90' : ''
-                    }`}
+                    } ${isSelected ? 'ring-2 ring-inset ring-amber-500 bg-amber-50/90' : ''}`}
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ${
+                        className={`text-[10px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center ${
                           isSelected
                             ? 'bg-amber-500 text-white'
                             : hasSales
@@ -547,15 +524,14 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         {cell.dayNum}
                       </span>
                       {hasSales && cell.summary && cell.summary.unpaidQty > 0 && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Ada pesanan belum bayar" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                       )}
                     </div>
 
-                    {/* Sales Badge inside Calendar Cell */}
                     {hasSales && cell.summary && (
-                      <div className="mt-1 space-y-0.5">
-                        <div className="inline-block w-full text-center px-1 py-0.5 bg-amber-100 text-amber-950 font-black text-[11px] sm:text-xs rounded-md border border-amber-300">
-                          🥭 {cell.summary.totalQty} Cup
+                      <div className="mt-0.5 sm:mt-1 space-y-0.5">
+                        <div className="inline-block w-full text-center px-0.5 py-0.2 sm:px-1 sm:py-0.5 bg-amber-100 text-amber-950 font-black text-[9px] sm:text-xs rounded border border-amber-300 leading-tight">
+                          {cell.summary.totalQty}c
                         </div>
                         <div className="hidden sm:block text-[10px] text-slate-500 text-center font-medium truncate">
                           {formatRupiah(cell.summary.totalAmount)}
@@ -567,38 +543,31 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               })}
             </div>
           </div>
-
-          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>
-              Klik salah satu tanggal berwarna kuning di atas untuk melihat rincian pemesan pada tanggal tersebut.
-            </span>
-          </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* 3. DAFTAR PESANAN RINGKAS (TERBATAS & TIDAK PANJANG)    */}
+      {/* 3. RINCIAN PESANAN (MOBILE CARDS + DESKTOP TABLE)        */}
       {/* ======================================================== */}
-      <div className="p-4 sm:p-5 border-t border-slate-200 space-y-3 bg-slate-50/50">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="p-3.5 sm:p-5 border-t border-slate-200 space-y-3 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-1.5">
-              <ShoppingBag className="w-4 h-4 text-amber-500" />
+            <h3 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-1.5 truncate">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
               <span>
                 {displayMode === 'slide'
-                  ? `Rincian Pesanan: Tanggal ${currentSlide?.tanggal || '-'}`
+                  ? `Tanggal ${currentSlide?.tanggal || '-'}`
                   : displayMode === 'calendar'
-                  ? `Rincian Pesanan: Tanggal ${calSelectedDateStr || 'Pilih Tanggal di Kalender'}`
+                  ? `Tanggal ${calSelectedDateStr || 'Pilih di Kalender'}`
                   : 'Semua Pesanan'}
               </span>
             </h3>
-            <span className="text-xs bg-white border border-slate-200 px-2 py-0.5 rounded-full text-slate-600 font-semibold">
-              {activeOrdersForView.length} Transaksi
+            <span className="text-[10px] sm:text-xs bg-white border border-slate-200 px-2 py-0.5 rounded-full text-slate-600 font-semibold shrink-0">
+              {activeOrdersForView.length} Pesanan
             </span>
           </div>
 
-          {/* Quick Filters inside detail */}
+          {/* Quick Filters */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1 sm:w-48">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -614,7 +583,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="py-1 px-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
+              className="py-1 px-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer font-medium"
             >
               <option value="All">Semua</option>
               <option value="Paid">Lunas</option>
@@ -623,9 +592,83 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
           </div>
         </div>
 
-        {/* Contained Scrollable Table with Max-Height so page never stretches */}
-        <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-2xs">
-          <div className="max-h-72 sm:max-h-80 overflow-y-auto scrollbar-thin">
+        {/* --- A. TAMPILAN KHUSUS MOBILE: CARD LIST (HP) --- */}
+        <div className="sm:hidden space-y-2 max-h-80 overflow-y-auto scrollbar-thin pr-0.5">
+          {activeOrdersForView.length === 0 ? (
+            <div className="p-6 bg-white border border-slate-200 rounded-xl text-center text-slate-400 text-xs">
+              Tidak ada transaksi pada tanggal ini.
+            </div>
+          ) : (
+            activeOrdersForView.map((ord) => {
+              const isPaid = ord.status === 'Paid';
+              return (
+                <div
+                  key={ord.id}
+                  className="p-3 bg-white border border-slate-200/90 rounded-xl shadow-2xs space-y-2 hover:border-amber-300 transition"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                        <span>{ord.namaPemesan}</span>
+                        {ord.batch && (
+                          <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200">
+                            {ord.batch}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {ord.tanggal} • Bayar: <span className="font-semibold text-slate-700">{ord.pembayaran}</span>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                        isPaid
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-orange-100 text-orange-800 border border-orange-200'
+                      }`}
+                    >
+                      {isPaid ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <Clock className="w-3 h-3 text-orange-600" />}
+                      <span>{isPaid ? 'Lunas' : 'Belum'}</span>
+                    </span>
+                  </div>
+
+                  {ord.note && (
+                    <div className="text-[10px] text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100 italic">
+                      "{ord.note}"
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 bg-amber-50 text-amber-900 font-extrabold text-xs rounded border border-amber-200">
+                        {ord.qty} Cup
+                      </span>
+                      <span className="font-black text-xs text-slate-900">
+                        {formatRupiah(ord.amount)}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => onToggleStatus(ord.id)}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition cursor-pointer ${
+                        isPaid
+                          ? 'text-slate-500 hover:text-slate-800 bg-slate-100'
+                          : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                      }`}
+                    >
+                      {isPaid ? 'Batal Lunas' : '✓ Tandai Lunas'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* --- B. TAMPILAN TABLE UNTUK DESKTOP & TABLET --- */}
+        <div className="hidden sm:block border border-slate-200 rounded-xl bg-white overflow-hidden shadow-2xs">
+          <div className="max-h-80 overflow-y-auto scrollbar-thin">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
                 <tr>
@@ -663,23 +706,14 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         </td>
                         <td className="py-2 px-3 text-center whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                               isPaid
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : 'bg-orange-100 text-orange-800 border border-orange-200'
                             }`}
                           >
-                            {isPaid ? (
-                              <>
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Paid</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3 h-3 text-orange-600" />
-                                <span>Not Paid</span>
-                              </>
-                            )}
+                            {isPaid ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <Clock className="w-3 h-3 text-orange-600" />}
+                            <span>{isPaid ? 'Paid' : 'Not Paid'}</span>
                           </span>
                         </td>
                         <td className="py-2 px-3 text-slate-600 whitespace-nowrap">

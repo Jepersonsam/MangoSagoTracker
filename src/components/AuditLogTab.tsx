@@ -221,8 +221,47 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs }) =
         </div>
       </div>
 
-      {/* Log Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card List View (Phones) */}
+      <div className="sm:hidden divide-y divide-slate-100">
+        {filteredLogs.length === 0 ? (
+          <div className="py-10 text-center text-slate-400">
+            <FileText className="w-6 h-6 mx-auto text-slate-300 mb-1" />
+            <p className="font-medium text-xs">Tidak ada catatan log.</p>
+          </div>
+        ) : (
+          filteredLogs.map((log) => (
+            <div key={log.id} className="p-3.5 space-y-2 hover:bg-slate-50/50 transition">
+              <div className="flex items-center justify-between text-xs">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-bold">
+                  <span>👑</span> {log.userName}
+                </span>
+                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  <span>{log.formattedDate}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div>{getActionBadge(log.action, log.category)}</div>
+                <span className="text-[11px] text-slate-400 font-medium">• {log.category}</span>
+              </div>
+
+              <p className="font-semibold text-xs text-slate-800 leading-snug">
+                {log.description}
+              </p>
+
+              {log.details && (
+                <div className="text-[10px] font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 break-words">
+                  {log.details}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Log Table (Tablet & Desktop) */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
             <tr>
@@ -309,3 +348,4 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs }) =
     </div>
   );
 };
+

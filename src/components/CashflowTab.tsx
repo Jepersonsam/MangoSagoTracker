@@ -96,8 +96,71 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows }) => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card List View (Phones) */}
+      <div className="sm:hidden divide-y divide-slate-100">
+        {filtered.length === 0 ? (
+          <div className="py-10 text-center text-slate-400 text-xs">
+            Tidak ada catatan kas.
+          </div>
+        ) : (
+          filtered.map((cf) => {
+            const isIncome = cf.tipe === 'Masuk';
+            return (
+              <div key={cf.id} className="p-3.5 space-y-2 hover:bg-slate-50/50 transition">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-500 text-[11px]">{cf.tanggal}</span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isIncome
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {isIncome ? (
+                      <>
+                        <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
+                        <span>Masuk</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUpRight className="w-3 h-3 text-rose-600" />
+                        <span>Keluar</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <div className="font-bold text-sm text-slate-900 leading-snug">
+                  {cf.transaksi}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                  <div>
+                    {isIncome ? (
+                      <span className="font-bold text-emerald-600">
+                        +{formatRupiah(cf.debit)}
+                      </span>
+                    ) : (
+                      <span className="font-bold text-rose-600">
+                        -{formatRupiah(cf.kredit)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    Saldo:{' '}
+                    <span className={`font-bold ${cf.balance >= 0 ? 'text-slate-800' : 'text-rose-600'}`}>
+                      {formatRupiah(cf.balance)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Table (Tablet & Desktop) */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200">
             <tr>

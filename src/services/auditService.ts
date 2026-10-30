@@ -129,3 +129,4 @@ export function clearAuditLogs(adminName: string): void {
 
   localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify([clearedLog]));
 }
+

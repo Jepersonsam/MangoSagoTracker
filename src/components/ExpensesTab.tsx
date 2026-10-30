@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Download, Plus, AlertCircle, Package } from 'lucide-react';
+import { Search, Download, Plus, ShoppingBag } from 'lucide-react';
 import { ExpenseItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
@@ -19,24 +19,23 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
     const matchesSearch =
       exp.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCat = categoryFilter === 'All' || exp.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'All' || exp.category === categoryFilter;
 
-    return matchesSearch && matchesCat;
+    return matchesSearch && matchesCategory;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
   const handleExportCsv = () => {
-    const header = ['Tanggal', 'Item', 'Kategori', 'Unit Price', 'Qty', 'Total Amount', 'Sisa Qty'];
+    const header = ['Tanggal', 'Item', 'Harga Satuan', 'Qty', 'Total Biaya', 'Kategori', 'Sisa Qty'];
     const rows = filteredExpenses.map((e) => [
       e.tanggal,
       `"${e.item}"`,
-      e.category,
       e.unitPrice,
       e.qty,
       e.totalAmount,
-      e.sisaQty || '',
+      `"${e.category}"`,
+      `"${e.sisaQty}"`,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [header.join(','), ...rows.map((row) => row.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -50,36 +49,38 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
+      case 'Bahan Baku':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'Kemasan':
-        return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'Operasional':
-        return 'bg-pink-50 text-pink-700 border-pink-200';
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-      {/* Top Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      {/* Header */}
+      <div className="p-3.5 sm:p-5 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              Daftar Belanja & Pengeluaran Bahan
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              Pembelian Bahan & Pengeluaran
+              <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                 {filteredExpenses.length} Item
               </span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tercatat dari sheet Pembelian Bahan, Kemasan, dan Operasional
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Data belanja bahan baku, kemasan cup/stiker, dan operasional harian
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export CSV</span>
@@ -87,7 +88,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 
             <button
               onClick={onOpenNewExpense}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Belanja Baru</span>
@@ -96,15 +97,15 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari item belanja (cth: Mangga, Cup, Susu)..."
+              placeholder="Cari item (cth: Mangga, Cup, Susu)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
             />
           </div>
 
@@ -113,7 +114,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as any)}
-              className="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden cursor-pointer"
+              className="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden cursor-pointer text-slate-800 font-medium"
             >
               <option value="All">Semua Kategori</option>
               <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Sagu)</option>
@@ -124,15 +125,61 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         </div>
 
         {/* Total Summary */}
-        <div className="mt-3 flex items-center gap-2 text-xs">
-          <div className="px-2.5 py-1 bg-rose-50 text-rose-800 rounded-md font-medium border border-rose-200/60">
+        <div className="mt-2.5 flex items-center gap-2 text-xs">
+          <div className="px-2.5 py-1 bg-rose-50 text-rose-800 rounded-md font-medium border border-rose-200/60 text-[11px] sm:text-xs">
             Total Pengeluaran: <span className="font-bold">{formatRupiah(totalFilteredAmount)}</span>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* --- A. TAMPILAN MOBILE CARD LIST (HP) --- */}
+      <div className="sm:hidden p-3.5 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+        {filteredExpenses.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            Tidak ada data belanja yang sesuai filter.
+          </div>
+        ) : (
+          filteredExpenses.map((exp) => (
+            <div
+              key={exp.id}
+              className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-2 hover:border-rose-300 transition"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-slate-900 text-xs">
+                    {exp.item}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    {exp.tanggal} • {exp.qty} pcs @ {formatRupiah(exp.unitPrice)}
+                  </div>
+                </div>
+
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${getCategoryBadge(exp.category)}`}>
+                  {exp.category}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                <span className="font-black text-rose-600">
+                  {formatRupiah(exp.totalAmount)}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {exp.sisaQty === '0' || exp.sisaQty === 0 ? (
+                    <span className="text-slate-400 font-medium">Habis (0)</span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                      Sisa: {exp.sisaQty}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* --- B. TAMPILAN TABEL UNTUK DESKTOP/TABLET --- */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200">
             <tr>
@@ -195,4 +242,3 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
     </div>
   );
 };
-
