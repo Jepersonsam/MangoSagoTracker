@@ -5,7 +5,7 @@ import {
   Download,
   Trash2,
   Filter,
-  User,
+  User as UserIcon,
   Clock,
   Sparkles,
   CheckCircle2,
@@ -16,19 +16,26 @@ import {
   ShoppingBag,
   RefreshCw,
   Settings,
+  Lock,
 } from 'lucide-react';
-import { AuditLog } from '../types';
+import { AuditLog, User } from '../types';
 
 interface AuditLogTabProps {
   logs: AuditLog[];
   onClearLogs: () => void;
+  currentUser?: User | null;
 }
 
-export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs }) => {
+export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [adminFilter, setAdminFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  const isSam =
+    currentUser?.name?.toLowerCase() === 'sam' ||
+    currentUser?.email?.toLowerCase().startsWith('sam') ||
+    currentUser?.username?.toLowerCase() === 'sam';
 
   // Available unique admins
   const admins = ['All', 'Ebi', 'Tia', 'Sam'];
@@ -162,14 +169,24 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs }) =
               <span>Export CSV</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowConfirmClear(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg shadow-2xs transition cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Reset Log</span>
-            </button>
+            {isSam ? (
+              <button
+                type="button"
+                onClick={() => setShowConfirmClear(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg shadow-2xs transition cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Reset Log</span>
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-slate-400 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed select-none"
+                title="Hanya Admin Sam yang berwenang mereset riwayat audit log"
+              >
+                <Lock className="w-3 h-3 text-slate-400" />
+                <span>Reset Log (Khusus Sam)</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -335,7 +352,9 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs }) =
                 type="button"
                 onClick={() => {
                   setShowConfirmClear(false);
-                  onClearLogs();
+                  if (isSam) {
+                    onClearLogs();
+                  }
                 }}
                 className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs cursor-pointer transition"
               >

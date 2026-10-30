@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: 'Admin' | 'Kasir';
   avatar?: string;
+  username?: string;
 }
 
 export interface AuditLog {

@@ -18,12 +18,11 @@ import { ChartsSection } from './components/ChartsSection';
 import { OrdersTab } from './components/OrdersTab';
 import { ExpensesTab } from './components/ExpensesTab';
 import { CashflowTab } from './components/CashflowTab';
-import { AuditLogTab } from './components/AuditLogTab';
 import { NewOrderModal } from './components/NewOrderModal';
 import { NewExpenseModal } from './components/NewExpenseModal';
 import { SheetSettingsModal } from './components/SheetSettingsModal';
 import { LoginPage } from './components/LoginPage';
-import { ShoppingBag, ShoppingCart, Landmark, ShieldAlert } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Landmark } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
@@ -49,7 +48,7 @@ export default function App() {
     currentBalance: 0,
   });
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'expenses' | 'cashflow' | 'audit'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'expenses' | 'cashflow'>('orders');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
@@ -250,9 +249,17 @@ export default function App() {
   };
 
   const handleClearLogs = () => {
-    clearAuditLogs(currentUser?.name || 'Admin');
+    const isSam =
+      currentUser?.name?.toLowerCase() === 'sam' ||
+      currentUser?.email?.toLowerCase().startsWith('sam') ||
+      currentUser?.username?.toLowerCase() === 'sam';
+    if (!isSam) {
+      showToast('Akses ditolak: Hanya Admin Sam yang berwenang mereset riwayat log!');
+      return;
+    }
+    clearAuditLogs(currentUser?.name || 'Sam');
     setAuditLogs(getAuditLogs());
-    showToast('Riwayat audit log berhasil direset.');
+    showToast('Riwayat audit log berhasil direset oleh Sam.');
   };
 
   // If not logged in, show beautiful LoginPage
@@ -354,24 +361,6 @@ export default function App() {
                 {cashflow.length}
               </span>
             </button>
-
-            {/* AUDIT LOG TAB */}
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
-                activeTab === 'audit'
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Audit Log</span>
-              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
-                activeTab === 'audit' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {auditLogs.length}
-              </span>
-            </button>
           </div>
         </div>
 
@@ -395,13 +384,6 @@ export default function App() {
           {activeTab === 'cashflow' && (
             <CashflowTab cashflows={cashflow} />
           )}
-
-          {activeTab === 'audit' && (
-            <AuditLogTab
-              logs={auditLogs}
-              onClearLogs={handleClearLogs}
-            />
-          )}
         </div>
       </main>
 
@@ -414,7 +396,7 @@ export default function App() {
               onClick={() => setIsSettingsModalOpen(true)}
               className="hover:underline text-amber-600 font-medium cursor-pointer"
             >
-              Konfigurasi Integrasi Sheet
+              Pengaturan & Audit Log Sistem
             </button>
           </div>
         </div>
@@ -438,6 +420,9 @@ export default function App() {
         onClose={() => setIsSettingsModalOpen(false)}
         spreadsheetId={sheetId}
         onSaveSheetId={handleSaveSheetId}
+        logs={auditLogs}
+        onClearLogs={handleClearLogs}
+        currentUser={currentUser}
       />
     </div>
   );
