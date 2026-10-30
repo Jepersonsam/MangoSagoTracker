@@ -251,6 +251,39 @@ function handleRequest(data) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'expense_created' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
+
+    // D. UBAH SISA QTY BAHAN / BELANJA (GID: 784188198 / Pembelian Bahan)
+    if (data.type === 'update_expense_sisa') {
+      var sheet = getSheetByGid(ss, '784188198') || 
+                  ss.getSheetByName('Pembelian Bahan ') || 
+                  ss.getSheetByName('Pembelian Bahan') || 
+                  ss.getSheetByName('Pembelian') || 
+                  ss.getSheets()[1];
+                  
+      var displayValues = sheet.getDataRange().getDisplayValues();
+      var targetItem = String(data.item || '').trim().toLowerCase();
+      var targetTgl = String(data.tanggal || '').trim().toLowerCase();
+      var updated = false;
+
+      // Cari baris item dari baris paling bawah ke atas
+      for (var r = displayValues.length - 1; r >= 1; r--) {
+        var rowTgl = String(displayValues[r][0] || '').trim().toLowerCase();
+        var rowItem = String(displayValues[r][1] || '').trim().toLowerCase();
+
+        if (rowItem === targetItem) {
+          var tglMatches = !targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1;
+          if (tglMatches) {
+            // Kolom G (index 7) = Sisa Qty
+            sheet.getRange(r + 1, 7).setValue(String(data.sisaQty));
+            updated = true;
+            break;
+          }
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'sisa_qty_updated', updated: updated }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_type', data: data }))
       .setMimeType(ContentService.MimeType.JSON);

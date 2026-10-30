@@ -1,19 +1,110 @@
 import React, { useState } from 'react';
-import { Search, Download, Plus, ShoppingBag } from 'lucide-react';
+import { Search, Download, Plus, ShoppingBag, Pencil, Check, X } from 'lucide-react';
 import { ExpenseItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
 interface ExpensesTabProps {
   expenses: ExpenseItem[];
   onOpenNewExpense: () => void;
+  onUpdateSisaQty?: (expenseId: string, newSisaQty: string | number) => void;
 }
 
 export const ExpensesTab: React.FC<ExpensesTabProps> = ({
   expenses,
   onOpenNewExpense,
+  onUpdateSisaQty,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Bahan Baku' | 'Kemasan' | 'Operasional'>('All');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+
+  const handleStartEdit = (exp: ExpenseItem) => {
+    setEditingId(exp.id);
+    setEditValue(exp.sisaQty !== undefined && exp.sisaQty !== null && exp.sisaQty !== '-' ? String(exp.sisaQty) : '0');
+  };
+
+  const handleSaveEdit = (expenseId: string) => {
+    if (onUpdateSisaQty) {
+      onUpdateSisaQty(expenseId, editValue.trim() || '0');
+    }
+    setEditingId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const renderSisaQtyBadge = (exp: ExpenseItem) => {
+    const isEditing = editingId === exp.id;
+
+    if (isEditing) {
+      return (
+        <div
+          className="inline-flex items-center gap-1 p-1 bg-white border border-amber-400 rounded-lg shadow-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveEdit(exp.id);
+              if (e.key === 'Escape') handleCancelEdit();
+            }}
+            placeholder="0"
+            className="w-14 px-1.5 py-0.5 text-xs text-center border border-slate-200 rounded font-bold text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-amber-500 bg-amber-50/40"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={() => setEditValue('0')}
+            title="Set Habis (0)"
+            className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded cursor-pointer"
+          >
+            Habis (0)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveEdit(exp.id)}
+            title="Simpan perubahan"
+            className="p-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded transition cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleCancelEdit}
+            title="Batal"
+            className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded transition cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleStartEdit(exp)}
+        title="Klik untuk ubah sisa stok"
+        className="group inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full transition cursor-pointer hover:ring-2 hover:ring-amber-400/70 hover:bg-amber-50/50"
+      >
+        {exp.sisaQty === '0' || exp.sisaQty === 0 ? (
+          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-medium group-hover:bg-amber-100 group-hover:text-amber-800 flex items-center gap-1">
+            <span>Habis (0)</span>
+            <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-slate-500 group-hover:text-amber-700" />
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold group-hover:bg-emerald-100 flex items-center gap-1">
+            <span>Sisa: {exp.sisaQty}</span>
+            <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-emerald-600" />
+          </span>
+        )}
+      </button>
+    );
+  };
 
   const filteredExpenses = expenses.filter((exp) => {
     const matchesSearch =
@@ -163,15 +254,9 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
                 <span className="font-black text-rose-600">
                   {formatRupiah(exp.totalAmount)}
                 </span>
-                <span className="text-[10px] text-slate-500">
-                  {exp.sisaQty === '0' || exp.sisaQty === 0 ? (
-                    <span className="text-slate-400 font-medium">Habis (0)</span>
-                  ) : (
-                    <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                      Sisa: {exp.sisaQty}
-                    </span>
-                  )}
-                </span>
+                <div>
+                  {renderSisaQtyBadge(exp)}
+                </div>
               </div>
             </div>
           ))
@@ -223,15 +308,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
                     {formatRupiah(exp.totalAmount)}
                   </td>
                   <td className="py-3 px-4 text-center whitespace-nowrap">
-                    {exp.sisaQty === '0' || exp.sisaQty === 0 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-medium">
-                        Habis (0)
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                        Sisa: {exp.sisaQty}
-                      </span>
-                    )}
+                    {renderSisaQtyBadge(exp)}
                   </td>
                 </tr>
               ))

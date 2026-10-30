@@ -7,6 +7,7 @@ import {
   postOrderToSheet,
   postExpenseToSheet,
   postOrderStatusToSheet,
+  postExpenseSisaQtyToSheet,
   formatRupiah,
   SPREADSHEET_ID,
 } from './services/sheetsService';
@@ -176,11 +177,9 @@ export default function App() {
         if (ord.id === orderId) {
           nextStatus = ord.status === 'Paid' ? 'Not Paid' : 'Paid';
           changedOrderName = ord.namaPemesan;
-          const nextNote = nextStatus === 'Paid' ? 'Sudah diterima' : 'Belum diterima';
           updatedOrderObj = {
             ...ord,
             status: nextStatus,
-            note: nextNote,
             pembayaran: nextStatus === 'Paid' && ord.pembayaran === '-' ? 'BCA' : ord.pembayaran,
           };
           return updatedOrderObj;
@@ -258,6 +257,45 @@ export default function App() {
       showToast(`Pengeluaran ${newExpense.item} berhasil dicatat & dikirim ke Sheet!`);
     } else {
       showToast(`Pengeluaran ${newExpense.item} dicatat di web (Masukkan Web App URL di ⚙️ agar tercatat di Google Sheet).`);
+    }
+  };
+
+  // Update Sisa Qty of an Expense Item
+  const handleUpdateExpenseSisa = (expenseId: string, newSisaQty: string | number) => {
+    let targetItem = '';
+    let updatedExpObj: ExpenseItem | null = null;
+
+    setExpenses((prev) => {
+      const updated = prev.map((exp) => {
+        if (exp.id === expenseId) {
+          targetItem = exp.item;
+          updatedExpObj = {
+            ...exp,
+            sisaQty: newSisaQty,
+          };
+          return updatedExpObj;
+        }
+        return exp;
+      });
+      return updated;
+    });
+
+    if (updatedExpObj) {
+      postExpenseSisaQtyToSheet(updatedExpObj, newSisaQty);
+    }
+
+    logAudit(
+      'UPDATE_EXPENSE',
+      'Pengeluaran',
+      `Mengubah sisa stok ${targetItem || 'Bahan'}`,
+      `Sisa Qty diperbarui menjadi: ${newSisaQty}`
+    );
+
+    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+    if (hasAppsScript) {
+      showToast(`Sisa stok ${targetItem} (${newSisaQty}) disimpan & disinkronkan ke Sheet!`);
+    } else {
+      showToast(`Sisa stok ${targetItem} (${newSisaQty}) diperbarui di web.`);
     }
   };
 
@@ -405,6 +443,7 @@ export default function App() {
             <ExpensesTab
               expenses={expenses}
               onOpenNewExpense={() => setIsExpenseModalOpen(true)}
+              onUpdateSisaQty={handleUpdateExpenseSisa}
             />
           )}
 

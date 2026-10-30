@@ -370,6 +370,41 @@ export async function postExpenseToSheet(expense: ExpenseItem): Promise<boolean>
   }
 }
 
+// Update Sisa Qty of an expense item in Google Sheets
+export async function postExpenseSisaQtyToSheet(expense: ExpenseItem, newSisaQty: string | number): Promise<boolean> {
+  const url = localStorage.getItem('mango_apps_script_url');
+  if (!url || !url.startsWith('http')) return false;
+
+  const sisaStr = String(newSisaQty).trim();
+
+  const params = new URLSearchParams({
+    type: 'update_expense_sisa',
+    tanggal: expense.tanggal,
+    item: expense.item,
+    sisaQty: sisaStr,
+  });
+
+  const fullUrl = `${url}?${params.toString()}`;
+
+  try {
+    await fetch(fullUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        type: 'update_expense_sisa',
+        tanggal: expense.tanggal,
+        item: expense.item,
+        sisaQty: sisaStr,
+      }),
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to update expense sisa qty in sheet:', err);
+    return false;
+  }
+}
+
 // Calculate Dashboard Metrics
 export function calculateMetrics(
   orders: OrderItem[],
