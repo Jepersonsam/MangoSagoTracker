@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RefreshCw, PlusCircle, Settings, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag } from 'lucide-react';
+import { RefreshCw, PlusCircle, Settings, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck } from 'lucide-react';
 import { User } from '../types';
+import { AVAILABLE_PROFILES } from '../services/authService';
 
 interface NavbarProps {
   lastUpdated: Date | null;
@@ -14,6 +15,7 @@ interface NavbarProps {
   isLiveConnected: boolean;
   currentUser: User | null;
   onLogout: () => void;
+  onSwitchUser?: (user: User) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isLiveConnected,
   currentUser,
   onLogout,
+  onSwitchUser,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -166,14 +169,51 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <div className="text-xs font-bold text-slate-800 truncate">
-                        Admin {currentUser.name}
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">
+                        Aktif Saat Ini:
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {currentUser.email}
+                      <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 truncate">
+                        <span>{currentUser.avatar}</span>
+                        <span>{currentUser.name} ({currentUser.role})</span>
                       </div>
+                    </div>
+
+                    {/* Quick Profile Switcher */}
+                    <div className="py-1 border-b border-slate-100">
+                      <div className="px-4 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Ganti Profil Admin:
+                      </div>
+                      {AVAILABLE_PROFILES.map((p) => {
+                        const isCurrent = currentUser?.name.toLowerCase() === p.name.toLowerCase();
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              if (onSwitchUser) onSwitchUser(p);
+                              setIsUserMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between transition cursor-pointer ${
+                              isCurrent
+                                ? 'bg-amber-50 text-amber-900 font-bold'
+                                : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>{p.avatar}</span>
+                              <span>{p.name}</span>
+                              {p.name.toLowerCase() === 'sam' && (
+                                <span className="text-[9px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded-full">
+                                  Utama
+                                </span>
+                              )}
+                            </span>
+                            {isCurrent && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div className="py-1">
@@ -193,23 +233,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                           setIsUserMenuOpen(false);
                           onOpenSettings();
                         }}
-                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium"
                       >
                         <Settings className="w-3.5 h-3.5 text-slate-400" />
                         <span>Pengaturan & Audit Log</span>
-                      </button>
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-1">
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onLogout();
-                        }}
-                        className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Keluar (Logout)</span>
                       </button>
                     </div>
                   </div>

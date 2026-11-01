@@ -362,18 +362,22 @@ export default function App() {
   };
 
   // If not logged in, show beautiful LoginPage
-  if (!currentUser) {
-    return (
-      <>
-        {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 backdrop-blur-md animate-in slide-in-from-bottom-3 duration-200">
-            {toastMessage}
-          </div>
-        )}
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
-      </>
-    );
-  }
+  // Switch active profile without requiring password
+  const handleSwitchUser = (user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('mango_current_user', JSON.stringify(user));
+    const newLog = recordAuditLog({
+      userName: user.name,
+      userRole: user.role,
+      action: 'LOGIN',
+      category: 'Autentikasi',
+      description: `Beralih profil ke ${user.name}`,
+    });
+    setAuditLogs((prev) => [newLog, ...prev]);
+    showToast(`Aktif sebagai ${user.name} (${user.role})`);
+  };
+
+  const activeUser = currentUser || getCurrentUser();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col selection:bg-amber-100 selection:text-amber-900">
@@ -395,8 +399,9 @@ export default function App() {
         onOpenNewExpense={() => setIsExpenseModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         isLiveConnected={isLiveConnected}
-        currentUser={currentUser}
+        currentUser={activeUser}
         onLogout={handleLogout}
+        onSwitchUser={handleSwitchUser}
       />
 
       {/* Main Container (Full Screen) */}

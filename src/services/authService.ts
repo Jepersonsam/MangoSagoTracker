@@ -32,6 +32,30 @@ export const DEFAULT_ACCOUNTS: StoredAccount[] = [
   },
 ];
 
+export const AVAILABLE_PROFILES: User[] = [
+  {
+    id: 'user-admin-sam',
+    name: 'Sam',
+    email: 'sam@mango.com',
+    role: 'Admin',
+    avatar: '🧑‍💼',
+  },
+  {
+    id: 'user-admin-ebi',
+    name: 'Ebi',
+    email: 'ebi@mango.com',
+    role: 'Admin',
+    avatar: '👨‍💼',
+  },
+  {
+    id: 'user-admin-tia',
+    name: 'Tia',
+    email: 'tia@mango.com',
+    role: 'Admin',
+    avatar: '👩‍💼',
+  },
+];
+
 const STORAGE_USERS_KEY = 'mango_auth_accounts_v2';
 const STORAGE_CURRENT_USER_KEY = 'mango_current_user';
 const STORAGE_REMEMBER_KEY = 'mango_remember_session';
@@ -77,18 +101,25 @@ function getStoredAccounts(): StoredAccount[] {
   }
 }
 
-export function getCurrentUser(): User | null {
+export function getCurrentUser(): User {
   try {
     const savedLocal = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
     if (savedLocal) return JSON.parse(savedLocal);
 
     const savedSession = sessionStorage.getItem(STORAGE_CURRENT_USER_KEY);
     if (savedSession) return JSON.parse(savedSession);
-
-    return null;
   } catch {
-    return null;
+    // ignore
   }
+
+  // Default ke Sam agar siapapun yang membuka website bisa langsung akses dan edit tanpa login!
+  return {
+    id: 'user-admin-sam',
+    name: 'Sam',
+    email: 'sam@mango.com',
+    role: 'Admin',
+    avatar: '🧑‍💼',
+  };
 }
 
 export async function loginUser(
