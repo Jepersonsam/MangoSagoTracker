@@ -37,14 +37,16 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
 }) => {
   const [dateIso, setDateIso] = useState<string>(getTodayIso());
   const [item, setItem] = useState('');
-  const [qty, setQty] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [totalAmount, setTotalAmount] = useState(0);
+  const [qty, setQty] = useState<number | ''>(1);
+  const [unitPrice, setUnitPrice] = useState<number | ''>('');
   const [sisaQty, setSisaQty] = useState('0');
   const [category, setCategory] = useState<'Bahan Baku' | 'Kemasan' | 'Operasional'>('Bahan Baku');
 
   if (!isOpen) return null;
 
+  const numQty = qty === '' ? 0 : Number(qty);
+  const numPrice = unitPrice === '' ? 0 : Number(unitPrice);
+  const totalAmount = numQty * numPrice;
   const formattedSheetDate = formatDateForSheet(dateIso);
 
   const handleItemChange = (val: string) => {
@@ -52,23 +54,20 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
     setCategory(determineCategory(val));
   };
 
-  const handleQtyPriceChange = (newQty: number, newUnitPrice: number) => {
-    setQty(newQty);
-    setUnitPrice(newUnitPrice);
-    setTotalAmount(newQty * newUnitPrice);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!item.trim() || totalAmount <= 0) return;
+    const finalQty = Math.max(1, numQty || 1);
+    const finalPrice = Math.max(0, numPrice || 0);
+    const finalTotal = finalQty * finalPrice;
+    if (!item.trim() || finalTotal <= 0) return;
 
     const newExpense: ExpenseItem = {
       id: `exp-local-${Date.now()}`,
       tanggal: formattedSheetDate,
       item: item.trim(),
-      unitPrice,
-      qty,
-      totalAmount,
+      unitPrice: finalPrice,
+      qty: finalQty,
+      totalAmount: finalTotal,
       sisaQty,
       category,
     };
@@ -196,8 +195,13 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
               <input
                 type="number"
                 min="1"
+                step="any"
                 value={qty}
-                onChange={(e) => handleQtyPriceChange(Math.max(1, parseInt(e.target.value) || 1), unitPrice)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQty(val === '' ? '' : Math.max(1, parseFloat(val) || 1));
+                }}
+                placeholder="1"
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-hidden"
                 required
               />
@@ -207,9 +211,12 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
               <label className="block font-semibold text-slate-700 mb-1">Harga Satuan (Rp)</label>
               <input
                 type="number"
-                step="100"
+                step="any"
                 value={unitPrice}
-                onChange={(e) => handleQtyPriceChange(qty, parseInt(e.target.value) || 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUnitPrice(val === '' ? '' : Math.max(0, parseFloat(val) || 0));
+                }}
                 placeholder="misal: 18000"
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-hidden"
                 required

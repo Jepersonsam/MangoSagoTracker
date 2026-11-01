@@ -38,8 +38,8 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 }) => {
   const [dateIso, setDateIso] = useState<string>(getTodayIso());
   const [namaPemesan, setNamaPemesan] = useState('');
-  const [qty, setQty] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(21000);
+  const [qty, setQty] = useState<number | ''>(1);
+  const [unitPrice, setUnitPrice] = useState<number | ''>(21000);
   const [status, setStatus] = useState<'Paid' | 'Not Paid'>('Not Paid');
   const [pembayaran, setPembayaran] = useState('BCA');
   const [note, setNote] = useState('Belum diterima');
@@ -49,21 +49,26 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalAmount = qty * unitPrice;
+  const numQty = qty === '' ? 0 : Number(qty);
+  const numPrice = unitPrice === '' ? 0 : Number(unitPrice);
+  const totalAmount = numQty * numPrice;
   const formattedSheetDate = formatDateForSheet(dateIso);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaPemesan.trim()) return;
 
+    const finalQty = Math.max(1, numQty || 1);
+    const finalPrice = Math.max(0, numPrice || 0);
+    const finalTotal = finalQty * finalPrice;
     const finalNote = isCustomNote ? (customNoteText.trim() || 'Belum diterima') : note;
 
     const newOrder: OrderItem = {
       id: `ord-local-${Date.now()}`,
       tanggal: formattedSheetDate,
       namaPemesan: namaPemesan.trim(),
-      qty: Number(qty),
-      amount: totalAmount,
+      qty: finalQty,
+      amount: finalTotal,
       status,
       pembayaran: status === 'Paid' ? pembayaran : '-',
       note: finalNote,
@@ -169,7 +174,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                 type="number"
                 min="1"
                 value={qty}
-                onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQty(val === '' ? '' : Math.max(1, parseInt(val, 10) || 1));
+                }}
+                placeholder="1"
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden"
                 required
               />
@@ -178,9 +187,13 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
               <label className="block font-semibold text-slate-700 mb-1">Harga Satuan (Rp)</label>
               <input
                 type="number"
-                step="1000"
+                step="500"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUnitPrice(val === '' ? '' : Math.max(0, parseInt(val, 10) || 0));
+                }}
+                placeholder="misal: 21000"
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden"
                 required
               />
