@@ -260,23 +260,39 @@ function handleRequest(data) {
                   ss.getSheetByName('Pembelian') || 
                   ss.getSheets()[1];
                   
-      var displayValues = sheet.getDataRange().getDisplayValues();
       var targetItem = String(data.item || '').trim().toLowerCase();
       var targetTgl = String(data.tanggal || '').trim().toLowerCase();
+      var targetSisa = String(data.sisaQty !== undefined && data.sisaQty !== null ? data.sisaQty : '0').trim();
       var updated = false;
 
-      // Cari baris item dari baris paling bawah ke atas
-      for (var r = displayValues.length - 1; r >= 1; r--) {
-        var rowTgl = String(displayValues[r][0] || '').trim().toLowerCase();
-        var rowItem = String(displayValues[r][1] || '').trim().toLowerCase();
-
-        if (rowItem === targetItem) {
-          var tglMatches = !targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1;
-          if (tglMatches) {
-            // Kolom G (index 7) = Sisa Qty
-            sheet.getRange(r + 1, 7).setValue(String(data.sisaQty));
+      // 1. Coba update langsung dengan rowIndex jika tersedia
+      if (data.rowIndex && Number(data.rowIndex) > 1) {
+        var rIdx = Number(data.rowIndex);
+        if (rIdx <= sheet.getLastRow()) {
+          var cellItem = String(sheet.getRange(rIdx, 2).getValue() || '').trim().toLowerCase();
+          if (!targetItem || cellItem === targetItem || cellItem.indexOf(targetItem) !== -1 || targetItem.indexOf(cellItem) !== -1) {
+            sheet.getRange(rIdx, 7).setValue(targetSisa);
             updated = true;
-            break;
+          }
+        }
+      }
+
+      // 2. Jika belum terupdate via rowIndex, cari dari baris paling bawah ke atas
+      if (!updated) {
+        var displayValues = sheet.getDataRange().getDisplayValues();
+        for (var r = displayValues.length - 1; r >= 1; r--) {
+          var rowTgl = String(displayValues[r][0] || '').trim().toLowerCase();
+          var rowItem = String(displayValues[r][1] || '').trim().toLowerCase();
+
+          var itemMatches = rowItem === targetItem || rowItem.indexOf(targetItem) !== -1 || targetItem.indexOf(rowItem) !== -1;
+          if (itemMatches) {
+            var tglMatches = !targetTgl || rowTgl === targetTgl || rowTgl.indexOf(targetTgl) !== -1 || targetTgl.indexOf(rowTgl) !== -1;
+            if (tglMatches) {
+              // Kolom G (index 7) = Sisa Qty
+              sheet.getRange(r + 1, 7).setValue(targetSisa);
+              updated = true;
+              break;
+            }
           }
         }
       }

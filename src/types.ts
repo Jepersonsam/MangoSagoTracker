@@ -40,6 +40,7 @@ export interface ExpenseItem {
   totalAmount: number;
   sisaQty?: number | string;
   category: 'Bahan Baku' | 'Kemasan' | 'Operasional';
+  rowIndex?: number;
 }
 
 export interface CashflowItem {

@@ -169,6 +169,7 @@ export async function fetchExpenses(sheetId = SPREADSHEET_ID): Promise<ExpenseIt
         totalAmount,
         sisaQty: sisaQty || '-',
         category: determineCategory(item),
+        rowIndex: i + 1,
       });
     }
 
@@ -414,12 +415,14 @@ export async function postExpenseSisaQtyToSheet(expense: ExpenseItem, newSisaQty
   if (!url || !url.startsWith('http')) return false;
 
   const sisaStr = String(newSisaQty).trim();
+  const rowIndexStr = expense.rowIndex ? String(expense.rowIndex) : '';
 
   const params = new URLSearchParams({
     type: 'update_expense_sisa',
     tanggal: expense.tanggal,
     item: expense.item,
     sisaQty: sisaStr,
+    rowIndex: rowIndexStr,
   });
 
   const fullUrl = `${url}?${params.toString()}`;
@@ -434,6 +437,7 @@ export async function postExpenseSisaQtyToSheet(expense: ExpenseItem, newSisaQty
         tanggal: expense.tanggal,
         item: expense.item,
         sisaQty: sisaStr,
+        rowIndex: rowIndexStr,
       }),
     });
     return true;

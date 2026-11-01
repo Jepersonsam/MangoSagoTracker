@@ -315,6 +315,7 @@ export default function App() {
 
     if (updatedExpObj) {
       postExpenseSisaQtyToSheet(updatedExpObj, newSisaQty);
+      setTimeout(() => loadData(true), 2500);
     }
 
     logAudit(
