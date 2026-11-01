@@ -90,10 +90,27 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
     createEmptyRow(),
   ]);
 
-  // Sync mode when modal opens with initialMode
+  // Reset form states to clean empty defaults
+  const resetForm = () => {
+    setDateIso(getTodayIso());
+    setSingleItem('');
+    setSingleQty(1);
+    setSingleUnitPrice('');
+    setSingleSisaQty('0');
+    setSingleCategory('Bahan Baku');
+    setBatchRows([createEmptyRow(), createEmptyRow()]);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onClose();
+  };
+
+  // Sync mode and reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
+      resetForm();
     }
   }, [isOpen, initialMode]);
 
@@ -149,6 +166,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
     };
 
     onAddExpense(newExpense);
+    resetForm();
     onClose();
   };
 
@@ -233,6 +251,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
     } else {
       newExpenses.forEach((exp) => onAddExpense(exp));
     }
+    resetForm();
     onClose();
   };
 
@@ -258,7 +277,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleCancel}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -601,7 +620,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleCancel}
                   className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                 >
                   Batal
@@ -755,7 +774,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
             <div className="pt-2 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleCancel}
                 className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
               >
                 Batal

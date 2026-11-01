@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Check } from 'lucide-react';
 import { OrderItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
@@ -47,6 +47,30 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [customNoteText, setCustomNoteText] = useState('');
   const [batch, setBatch] = useState('Pagi');
 
+  const resetForm = () => {
+    setDateIso(getTodayIso());
+    setNamaPemesan('');
+    setQty(1);
+    setUnitPrice(21000);
+    setStatus('Not Paid');
+    setPembayaran('BCA');
+    setNote('Belum diterima');
+    setIsCustomNote(false);
+    setCustomNoteText('');
+    setBatch('Pagi');
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onClose();
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const numQty = qty === '' ? 0 : Number(qty);
@@ -76,6 +100,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
     };
 
     onAddOrder(newOrder);
+    resetForm();
     onClose();
   };
 
@@ -98,7 +123,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
             <h3 className="font-bold text-slate-900 text-sm">Tambah Pesanan Baru</h3>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancel}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -289,7 +314,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           <div className="pt-2 flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
             >
               Batal
