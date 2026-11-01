@@ -284,6 +284,31 @@ function handleRequest(data) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'sisa_qty_updated', updated: updated }))
         .setMimeType(ContentService.MimeType.JSON);
     }
+
+    // E. TAMBAH BANYAK BELANJA SEKALIGUS (BATCH EXPENSES)
+    if (data.type === 'expenses_batch' && Array.isArray(data.items)) {
+      var sheet = getSheetByGid(ss, '784188198') || 
+                  ss.getSheetByName('Pembelian Bahan ') || 
+                  ss.getSheetByName('Pembelian Bahan') || 
+                  ss.getSheetByName('Pembelian') || 
+                  ss.getSheets()[1];
+                  
+      for (var b = 0; b < data.items.length; b++) {
+        var itm = data.items[b];
+        sheet.appendRow([
+          itm.tanggal || '',
+          itm.item || '',
+          itm.unitPrice || 0,
+          itm.qty || 1,
+          itm.totalAmount || 0,
+          '',
+          itm.sisaQty || ''
+        ]);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'expenses_batch_created', count: data.items.length }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_type', data: data }))
       .setMimeType(ContentService.MimeType.JSON);

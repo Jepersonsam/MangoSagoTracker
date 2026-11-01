@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Search, Download, Plus, ShoppingBag, Pencil, Check, X } from 'lucide-react';
+import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt } from 'lucide-react';
 import { ExpenseItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
 interface ExpensesTabProps {
   expenses: ExpenseItem[];
-  onOpenNewExpense: () => void;
+  onOpenNewExpense: (mode?: 'single' | 'batch') => void;
   onUpdateSisaQty?: (expenseId: string, newSisaQty: string | number) => void;
 }
 
@@ -168,7 +168,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <button
               onClick={handleExportCsv}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition cursor-pointer"
@@ -178,11 +178,21 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
             </button>
 
             <button
-              onClick={onOpenNewExpense}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition cursor-pointer"
+              onClick={() => onOpenNewExpense('single')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition cursor-pointer shadow-2xs"
+              title="Input 1 item belanja saja"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Belanja Baru</span>
+              <Plus className="w-3.5 h-3.5 text-slate-500" />
+              <span>+1 Item</span>
+            </button>
+
+            <button
+              onClick={() => onOpenNewExpense('batch')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-linear-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 rounded-lg shadow-xs hover:shadow transition cursor-pointer"
+              title="Input banyak belanja sekaligus (Nota Belanja)"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Belanja Sekaligus (Multi)</span>
             </button>
           </div>
         </div>

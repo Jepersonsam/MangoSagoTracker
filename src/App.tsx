@@ -8,6 +8,7 @@ import {
   postExpenseToSheet,
   postOrderStatusToSheet,
   postExpenseSisaQtyToSheet,
+  postExpensesBatchToSheet,
   formatRupiah,
   SPREADSHEET_ID,
 } from './services/sheetsService';
@@ -59,6 +60,7 @@ export default function App() {
   // Modals
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [expenseModalMode, setExpenseModalMode] = useState<'single' | 'batch'>('batch');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Toast
@@ -260,6 +262,37 @@ export default function App() {
     }
   };
 
+  // Add Multiple Expenses at once (Batch)
+  const handleAddMultipleExpenses = (newExpenses: ExpenseItem[]) => {
+    if (newExpenses.length === 0) return;
+
+    setExpenses((prev) => {
+      const updated = [...newExpenses, ...prev];
+      setMetrics(calculateMetrics(orders, updated, cashflow));
+      return updated;
+    });
+
+    postExpensesBatchToSheet(newExpenses);
+    setTimeout(() => loadData(true), 3000);
+
+    const totalNominal = newExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
+    const itemSummary = newExpenses.map((e) => e.item).join(', ');
+
+    logAudit(
+      'CREATE_EXPENSE',
+      'Pengeluaran',
+      `Mencatat belanja sekaligus (${newExpenses.length} item): ${formatRupiah(totalNominal)}`,
+      `Item: ${itemSummary}`
+    );
+
+    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+    if (hasAppsScript) {
+      showToast(`${newExpenses.length} item belanja berhasil dicatat & dikirim ke Sheet!`);
+    } else {
+      showToast(`${newExpenses.length} item belanja dicatat di web.`);
+    }
+  };
+
   // Update Sisa Qty of an Expense Item
   const handleUpdateExpenseSisa = (expenseId: string, newSisaQty: string | number) => {
     let targetItem = '';
@@ -442,7 +475,10 @@ export default function App() {
           {activeTab === 'expenses' && (
             <ExpensesTab
               expenses={expenses}
-              onOpenNewExpense={() => setIsExpenseModalOpen(true)}
+              onOpenNewExpense={(mode) => {
+                setExpenseModalMode(mode || 'batch');
+                setIsExpenseModalOpen(true);
+              }}
               onUpdateSisaQty={handleUpdateExpenseSisa}
             />
           )}
@@ -479,6 +515,8 @@ export default function App() {
         isOpen={isExpenseModalOpen}
         onClose={() => setIsExpenseModalOpen(false)}
         onAddExpense={handleAddExpense}
+        onAddMultipleExpenses={handleAddMultipleExpenses}
+        initialMode={expenseModalMode}
       />
 
       <SheetSettingsModal

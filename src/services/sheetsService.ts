@@ -370,6 +370,44 @@ export async function postExpenseToSheet(expense: ExpenseItem): Promise<boolean>
   }
 }
 
+// Post multiple expenses (batch) to Google Sheets
+export async function postExpensesBatchToSheet(expenses: ExpenseItem[]): Promise<boolean> {
+  const url = localStorage.getItem('mango_apps_script_url');
+  if (!url || !url.startsWith('http') || expenses.length === 0) return false;
+
+  try {
+    // Also send as batch payload
+    const batchPayload = {
+      type: 'expenses_batch',
+      items: expenses.map((exp) => ({
+        tanggal: exp.tanggal,
+        item: exp.item,
+        unitPrice: exp.unitPrice,
+        qty: exp.qty,
+        totalAmount: exp.totalAmount,
+        sisaQty: exp.sisaQty || '',
+        category: exp.category,
+      })),
+    };
+
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(batchPayload),
+    });
+
+    // Also post sequentially to guarantee backward compatibility with existing deployments
+    for (const exp of expenses) {
+      await postExpenseToSheet(exp);
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to post expenses batch to sheet:', err);
+    return false;
+  }
+}
+
 // Update Sisa Qty of an expense item in Google Sheets
 export async function postExpenseSisaQtyToSheet(expense: ExpenseItem, newSisaQty: string | number): Promise<boolean> {
   const url = localStorage.getItem('mango_apps_script_url');
