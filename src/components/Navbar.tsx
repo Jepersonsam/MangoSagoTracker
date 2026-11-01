@@ -239,6 +239,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span>Pengaturan & Audit Log</span>
                       </button>
                     </div>
+
+                    <div className="border-t border-slate-100 pt-1">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Keluar (Logout)</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

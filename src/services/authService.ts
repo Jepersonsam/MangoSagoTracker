@@ -101,25 +101,18 @@ function getStoredAccounts(): StoredAccount[] {
   }
 }
 
-export function getCurrentUser(): User {
+export function getCurrentUser(): User | null {
   try {
     const savedLocal = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
     if (savedLocal) return JSON.parse(savedLocal);
 
     const savedSession = sessionStorage.getItem(STORAGE_CURRENT_USER_KEY);
     if (savedSession) return JSON.parse(savedSession);
-  } catch {
-    // ignore
-  }
 
-  // Default ke Sam agar siapapun yang membuka website bisa langsung akses dan edit tanpa login!
-  return {
-    id: 'user-admin-sam',
-    name: 'Sam',
-    email: 'sam@mango.com',
-    role: 'Admin',
-    avatar: '🧑‍💼',
-  };
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export async function loginUser(
