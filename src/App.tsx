@@ -152,10 +152,11 @@ export default function App() {
           showToast('Data berhasil disinkronkan dengan Supabase!');
         }
         return;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Supabase fetch error:', err);
         setIsLiveConnected(false);
-        showToast('Gagal terhubung ke database Supabase.');
+        const errMsg = err?.message || err?.error_description || (typeof err === 'string' ? err : '');
+        showToast(errMsg ? `Gagal terhubung ke database Supabase: ${errMsg}` : 'Gagal terhubung ke database Supabase.');
       } finally {
         if (!isSilent) setIsLoading(false);
       }

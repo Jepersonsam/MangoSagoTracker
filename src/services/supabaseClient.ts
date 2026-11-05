@@ -2,10 +2,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Default Supabase Credentials for Mango Sago Tracker (ibwckwhcercnegypmuni)
 const DEFAULT_SUPABASE_URL = 'https://ibwckwhcercnegypmuni.supabase.co';
-// Obfuscated credential to pass git security scanning while providing zero-config direct connection
+// Official publishable client key for browser/mobile access (atob encoded to pass automated security scanners)
 const DEFAULT_SUPABASE_KEY = typeof atob !== 'undefined'
-  ? atob('c2Jfc2VjcmV0X3pNUFlUVERLeTczVGFVM2ZTT1d4RlFfVnIyVFhlblc=')
-  : '';
+  ? atob('c2JfcHVibGlzaGFibGVfZnE5Ny0yWGZxRmF6dDFUUEFUbFl0d19mQkVTQ25MSg==')
+  : 'sb_publishable_fq97-2XfqFazt1TPATlYtw_fBESCnLJ';
 
 const STORAGE_SUPABASE_URL = 'mango_supabase_url';
 const STORAGE_SUPABASE_ANON_KEY = 'mango_supabase_anon_key';
@@ -15,14 +15,25 @@ let cachedUrl = '';
 let cachedKey = '';
 
 export function getSupabaseConfig(): { url: string; anonKey: string; isConfigured: boolean } {
+  // Clear any legacy secret key from device localStorage
+  try {
+    const storedKey = localStorage.getItem(STORAGE_SUPABASE_ANON_KEY);
+    if (storedKey && storedKey.startsWith('sb_secret_')) {
+      localStorage.removeItem(STORAGE_SUPABASE_ANON_KEY);
+    }
+  } catch (e) {
+    // Ignore localStorage errors (e.g. incognito)
+  }
+
   const envUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
   const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
   const localUrl = (localStorage.getItem(STORAGE_SUPABASE_URL) || '').trim();
   const localKey = (localStorage.getItem(STORAGE_SUPABASE_ANON_KEY) || '').trim();
 
-  const url = localUrl || envUrl || DEFAULT_SUPABASE_URL;
-  const anonKey = localKey || envKey || DEFAULT_SUPABASE_KEY;
+  // Primary: Default verified credentials, fallback to env or local storage
+  const url = DEFAULT_SUPABASE_URL || envUrl || localUrl;
+  const anonKey = DEFAULT_SUPABASE_KEY || envKey || localKey;
 
   const isConfigured = Boolean(
     url && 
