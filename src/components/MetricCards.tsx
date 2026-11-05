@@ -49,7 +49,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics }) => {
     {
       title: 'Piutang Belum Lunas',
       value: formatRupiah(metrics.unpaidAmount),
-      subtext: `${metrics.unpaidOrdersCount} Pesanan Not Paid`,
+      subtext: `${metrics.unpaidOrdersCount} Pesanan Belum Dibayar`,
       icon: Clock,
       color: 'orange',
       bgLight: 'bg-orange-50',
@@ -60,7 +60,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics }) => {
     {
       title: 'Saldo Kas Berjalan',
       value: formatRupiah(metrics.currentBalance),
-      subtext: 'Arus Kas Masuk & Keluar',
+      subtext: 'Uang Aktual di Rekening (Lunas)',
       icon: Wallet,
       color: 'indigo',
       bgLight: 'bg-indigo-50',
