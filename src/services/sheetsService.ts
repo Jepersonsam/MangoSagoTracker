@@ -472,7 +472,8 @@ export function calculateMetrics(
   const unpaidAmount = unpaidOrders.reduce((sum, ord) => sum + ord.amount, 0);
   const unpaidOrdersCount = unpaidOrders.length;
 
-  const currentBalance = cashflow.length > 0 ? cashflow[cashflow.length - 1].balance : 0;
+  // Saldo Kas Berjalan: Hanya menghitung omset yang sudah lunas (Paid) dikurangi total biaya belanja
+  const currentBalance = paidAmount - totalExpenses;
 
   return {
     totalRevenue,

@@ -28,7 +28,10 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
 
   const totalDebit = filtered.reduce((sum, cf) => sum + cf.debit, 0);
   const totalKredit = filtered.reduce((sum, cf) => sum + cf.kredit, 0);
-  const latestBalance = cashflows.length > 0 ? cashflows[cashflows.length - 1].balance : 0;
+  // Saldo Akhir: Hanya menghitung mutasi riil (Hanya pesanan yang sudah lunas/dibayar dikurangi belanja)
+  const totalAllDebit = cashflows.reduce((sum, cf) => sum + cf.debit, 0);
+  const totalAllKredit = cashflows.reduce((sum, cf) => sum + cf.kredit, 0);
+  const latestBalance = totalAllDebit - totalAllKredit;
 
   const handleExportCsv = () => {
     const header = ['Tanggal', 'Transaksi', 'Debit (Masuk)', 'Kredit (Keluar)', 'Saldo (Balance)'];

@@ -144,19 +144,36 @@ export async function updateOrderStatusInSupabase(
     return false;
   }
 
-  // Jika status diubah menjadi Paid, catat pemasukan ke cashflow
+  // Sinkronisasi Buku Kas (Cashflows): HANYA mencatat jika pesanan lunas (Paid)
   if (status === 'Paid' && orderDetail) {
     try {
-      await supabase.from('cashflows').insert([{
-        tanggal: orderDetail.tanggal,
-        transaksi: `Pelunasan: ${orderDetail.namaPemesan} (${orderDetail.qty} cup)`,
-        debit: orderDetail.amount,
-        kredit: 0,
-        balance: 0,
-        tipe: 'Masuk',
-      }]);
+      const { data: existing } = await supabase
+        .from('cashflows')
+        .select('id')
+        .or(`transaksi.eq.Penjualan: ${orderDetail.namaPemesan} (${orderDetail.qty} cup),transaksi.eq.Pelunasan: ${orderDetail.namaPemesan} (${orderDetail.qty} cup)`);
+
+      if (!existing || existing.length === 0) {
+        await supabase.from('cashflows').insert([{
+          tanggal: orderDetail.tanggal,
+          transaksi: `Penjualan: ${orderDetail.namaPemesan} (${orderDetail.qty} cup)`,
+          debit: orderDetail.amount,
+          kredit: 0,
+          balance: 0,
+          tipe: 'Masuk',
+        }]);
+      }
     } catch (cfErr) {
       console.warn('Could not auto-insert order cashflow:', cfErr);
+    }
+  } else if (status === 'Not Paid' && orderDetail) {
+    // JIKA STATUS DIUBAH MENJADI NOT PAID / BELUM LUNAS, HAPUS DARI BUKU KAS
+    try {
+      await supabase
+        .from('cashflows')
+        .delete()
+        .or(`transaksi.ilike.%Penjualan: ${orderDetail.namaPemesan} %,transaksi.ilike.%Pelunasan: ${orderDetail.namaPemesan} %`);
+    } catch (cfErr) {
+      console.warn('Could not auto-delete unpaid order cashflow:', cfErr);
     }
   }
 
@@ -187,6 +204,49 @@ export async function updateOrderInSupabase(order: OrderItem): Promise<boolean> 
     console.error('Supabase update full order error:', error);
     return false;
   }
+
+  // Sinkronisasi Buku Kas berdasarkan status lunas
+  if (order.status === 'Paid') {
+    try {
+      const { data: existing } = await supabase
+        .from('cashflows')
+        .select('id')
+        .or(`transaksi.ilike.%Penjualan: ${order.namaPemesan} %,transaksi.ilike.%Pelunasan: ${order.namaPemesan} %`);
+
+      if (existing && existing.length > 0) {
+        await supabase
+          .from('cashflows')
+          .update({
+            tanggal: order.tanggal,
+            transaksi: `Penjualan: ${order.namaPemesan} (${order.qty} cup)`,
+            debit: order.amount,
+          })
+          .eq('id', existing[0].id);
+      } else {
+        await supabase.from('cashflows').insert([{
+          tanggal: order.tanggal,
+          transaksi: `Penjualan: ${order.namaPemesan} (${order.qty} cup)`,
+          debit: order.amount,
+          kredit: 0,
+          balance: 0,
+          tipe: 'Masuk',
+        }]);
+      }
+    } catch (cfErr) {
+      console.warn('Could not sync cashflow on edit order:', cfErr);
+    }
+  } else {
+    // Jika berstatus Not Paid (Belum Lunas), pastikan tidak ada di buku kas
+    try {
+      await supabase
+        .from('cashflows')
+        .delete()
+        .or(`transaksi.ilike.%Penjualan: ${order.namaPemesan} %,transaksi.ilike.%Pelunasan: ${order.namaPemesan} %`);
+    } catch (cfErr) {
+      console.warn('Could not remove unpaid cashflow on edit order:', cfErr);
+    }
+  }
+
   return true;
 }
 
@@ -200,7 +260,7 @@ export async function deleteOrderInSupabase(orderId: string, orderDetail?: Parti
       await supabase
         .from('cashflows')
         .delete()
-        .ilike('transaksi', `%${orderDetail.namaPemesan}%`);
+        .or(`transaksi.ilike.%Penjualan: ${orderDetail.namaPemesan} %,transaksi.ilike.%Pelunasan: ${orderDetail.namaPemesan} %`);
     } catch (cfErr) {
       console.warn('Could not auto-delete order cashflow:', cfErr);
     }
