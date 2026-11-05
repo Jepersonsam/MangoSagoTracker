@@ -1,5 +1,3 @@
-
-
 import { OrderItem, ExpenseItem, CashflowItem, AuditLog } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
@@ -102,13 +100,31 @@ export async function createOrderInSupabase(order: OrderItem): Promise<boolean> 
     console.error('Supabase create order error:', error);
     return false;
   }
+
+  // Jika pesanan langsung berstatus Paid, catat pemasukan otomatis di cashflows
+  if (order.status === 'Paid') {
+    try {
+      await supabase.from('cashflows').insert([{
+        tanggal: order.tanggal,
+        transaksi: `Penjualan: ${order.namaPemesan} (${order.qty} cup)`,
+        debit: order.amount,
+        kredit: 0,
+        balance: 0,
+        tipe: 'Masuk',
+      }]);
+    } catch (cfErr) {
+      console.warn('Could not auto-insert order cashflow:', cfErr);
+    }
+  }
+
   return true;
 }
 
 export async function updateOrderStatusInSupabase(
   orderId: string,
   status: string,
-  pembayaran?: string
+  pembayaran?: string,
+  orderDetail?: OrderItem
 ): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return false;
@@ -118,7 +134,6 @@ export async function updateOrderStatusInSupabase(
     updates.pembayaran = pembayaran;
   }
 
-  // Handle both UUID and id matching
   const { error } = await supabase
     .from('orders')
     .update(updates)
@@ -128,6 +143,23 @@ export async function updateOrderStatusInSupabase(
     console.error('Supabase update order status error:', error);
     return false;
   }
+
+  // Jika status diubah menjadi Paid, catat pemasukan ke cashflow
+  if (status === 'Paid' && orderDetail) {
+    try {
+      await supabase.from('cashflows').insert([{
+        tanggal: orderDetail.tanggal,
+        transaksi: `Pelunasan: ${orderDetail.namaPemesan} (${orderDetail.qty} cup)`,
+        debit: orderDetail.amount,
+        kredit: 0,
+        balance: 0,
+        tipe: 'Masuk',
+      }]);
+    } catch (cfErr) {
+      console.warn('Could not auto-insert order cashflow:', cfErr);
+    }
+  }
+
   return true;
 }
 
@@ -154,7 +186,7 @@ export async function fetchExpensesFromSupabase(): Promise<ExpenseItem[]> {
     unitPrice: Number(row.unit_price) || 0,
     qty: Number(row.qty) || 0,
     totalAmount: Number(row.total_amount) || 0,
-    sisaQty: row.sisa_qty !== null && row.sisa_qty !== undefined ? String(row.sisa_qty) : '',
+    sisaQty: row.sisa_qty !== null && row.sisa_qty !== undefined ? String(row.sisa_qty) : '0',
     category: (row.category || 'Bahan Baku') as 'Bahan Baku' | 'Kemasan' | 'Operasional',
     rowIndex: row.row_index || undefined,
   }));
@@ -170,7 +202,7 @@ export async function createExpenseInSupabase(expense: ExpenseItem): Promise<boo
     unit_price: expense.unitPrice,
     qty: expense.qty,
     total_amount: expense.totalAmount,
-    sisa_qty: expense.sisaQty !== undefined && expense.sisaQty !== null ? String(expense.sisaQty) : '',
+    sisa_qty: expense.sisaQty !== undefined && expense.sisaQty !== null ? String(expense.sisaQty) : '0',
     category: expense.category,
     row_index: expense.rowIndex || null,
   };
@@ -180,6 +212,23 @@ export async function createExpenseInSupabase(expense: ExpenseItem): Promise<boo
     console.error('Supabase create expense error:', error);
     return false;
   }
+
+  // Catat otomatis pengeluaran ke buku kas (cashflows)
+  if (expense.totalAmount > 0) {
+    try {
+      await supabase.from('cashflows').insert([{
+        tanggal: expense.tanggal,
+        transaksi: `Belanja: ${expense.item}`,
+        debit: 0,
+        kredit: expense.totalAmount,
+        balance: 0,
+        tipe: 'Keluar',
+      }]);
+    } catch (cfErr) {
+      console.warn('Could not auto-insert expense cashflow:', cfErr);
+    }
+  }
+
   return true;
 }
 
@@ -193,7 +242,7 @@ export async function createBatchExpensesInSupabase(expenses: ExpenseItem[]): Pr
     unit_price: expense.unitPrice,
     qty: expense.qty,
     total_amount: expense.totalAmount,
-    sisa_qty: expense.sisaQty !== undefined && expense.sisaQty !== null ? String(expense.sisaQty) : '',
+    sisa_qty: expense.sisaQty !== undefined && expense.sisaQty !== null ? String(expense.sisaQty) : '0',
     category: expense.category,
     row_index: expense.rowIndex || null,
   }));
@@ -203,6 +252,27 @@ export async function createBatchExpensesInSupabase(expenses: ExpenseItem[]): Pr
     console.error('Supabase create batch expenses error:', error);
     return false;
   }
+
+  // Catat otomatis pengeluaran sekaligus ke buku kas
+  const cfPayloads = expenses
+    .filter((e) => e.totalAmount > 0)
+    .map((e) => ({
+      tanggal: e.tanggal,
+      transaksi: `Belanja: ${e.item}`,
+      debit: 0,
+      kredit: e.totalAmount,
+      balance: 0,
+      tipe: 'Keluar',
+    }));
+
+  if (cfPayloads.length > 0) {
+    try {
+      await supabase.from('cashflows').insert(cfPayloads);
+    } catch (cfErr) {
+      console.warn('Could not auto-insert batch expenses cashflows:', cfErr);
+    }
+  }
+
   return true;
 }
 
@@ -241,15 +311,22 @@ export async function fetchCashflowFromSupabase(): Promise<CashflowItem[]> {
     throw error;
   }
 
-  return (data || []).map((row: SupabaseCashflowRow) => ({
-    id: String(row.id),
-    tanggal: row.tanggal || '',
-    transaksi: row.transaksi || '',
-    debit: Number(row.debit) || 0,
-    kredit: Number(row.kredit) || 0,
-    balance: Number(row.balance) || 0,
-    tipe: (row.tipe || 'Masuk') as 'Masuk' | 'Keluar',
-  }));
+  let runningBalance = 0;
+  return (data || []).map((row: SupabaseCashflowRow) => {
+    const debit = Number(row.debit) || 0;
+    const kredit = Number(row.kredit) || 0;
+    runningBalance += (debit - kredit);
+
+    return {
+      id: String(row.id),
+      tanggal: row.tanggal || '',
+      transaksi: row.transaksi || '',
+      debit,
+      kredit,
+      balance: runningBalance,
+      tipe: (row.tipe || (debit > 0 ? 'Masuk' : 'Keluar')) as 'Masuk' | 'Keluar',
+    };
+  });
 }
 
 // ------------------- Audit Logs -------------------
@@ -312,7 +389,7 @@ export async function clearAuditLogsInSupabase(): Promise<boolean> {
   const { error } = await supabase
     .from('audit_logs')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000'); // Deletes all rows
+    .neq('id', '00000000-0000-0000-0000-000000000000');
 
   if (error) {
     console.error('Supabase clear audit logs error:', error);
@@ -356,81 +433,25 @@ export function subscribeToSupabaseChanges(onChange: () => void): () => void {
   };
 }
 
+// ------------------- Reset Database ke 0 (Kosong) -------------------
 
-// ------------------- Sync Live Spreadsheet to Supabase -------------------
-
-export async function syncSpreadsheetToSupabase(
-  orders: OrderItem[],
-  expenses: ExpenseItem[],
-  cashflow: CashflowItem[]
-): Promise<{ success: boolean; message: string }> {
+export async function resetDatabaseToZero(): Promise<{ success: boolean; message: string }> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, message: 'Supabase client belum terhubung' };
+  if (!supabase) return { success: false, message: 'Supabase client belum terhubung.' };
 
   try {
-    // 1. Delete existing rows
     await Promise.all([
       supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('cashflows').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
     ]);
 
-    // 2. Insert orders in chunks of 50
-    if (orders.length > 0) {
-      const orderPayloads = orders.map((o) => ({
-        tanggal: o.tanggal,
-        nama_pemesan: o.namaPemesan,
-        qty: o.qty,
-        amount: o.amount,
-        status: o.status,
-        note: o.note || '',
-        pembayaran: o.pembayaran || '-',
-        batch: o.batch || null,
-      }));
-      const { error: ordErr } = await supabase.from('orders').insert(orderPayloads);
-      if (ordErr) throw ordErr;
-    }
-
-    // 3. Insert expenses
-    if (expenses.length > 0) {
-      const expensePayloads = expenses.map((e) => ({
-        tanggal: e.tanggal,
-        item: e.item,
-        unit_price: e.unitPrice,
-        qty: e.qty,
-        total_amount: e.totalAmount,
-        sisa_qty: e.sisaQty !== undefined && e.sisaQty !== null ? String(e.sisaQty) : '0',
-        category: e.category,
-        row_index: e.rowIndex || null,
-      }));
-      const { error: expErr } = await supabase.from('expenses').insert(expensePayloads);
-      if (expErr) throw expErr;
-    }
-
-    // 4. Insert cashflow in chunks of 50
-    if (cashflow.length > 0) {
-      const cfPayloads = cashflow.map((c) => ({
-        tanggal: c.tanggal,
-        transaksi: c.transaksi,
-        debit: c.debit,
-        kredit: c.kredit,
-        balance: c.balance,
-        tipe: c.tipe,
-      }));
-      // Split into batches of 40 to avoid any payload limits
-      for (let i = 0; i < cfPayloads.length; i += 40) {
-        const batch = cfPayloads.slice(i, i + 40);
-        const { error: cfErr } = await supabase.from('cashflows').insert(batch);
-        if (cfErr) throw cfErr;
-      }
-    }
-
     return {
       success: true,
-      message: `✅ Berhasil mengimpor ${orders.length} pesanan, ${expenses.length} pengeluaran, dan ${cashflow.length} baris kas ke Supabase!`,
+      message: '✅ Berhasil! Seluruh data penjualan, belanja, dan buku kas di Supabase telah dikosongkan (mulai dari 0).',
     };
   } catch (err: any) {
-    console.error('Failed to sync spreadsheet to Supabase:', err);
-    return { success: false, message: `Gagal impor: ${err.message || err}` };
+    console.error('Failed to reset database to zero:', err);
+    return { success: false, message: `Gagal mereset database: ${err.message || err}` };
   }
 }
