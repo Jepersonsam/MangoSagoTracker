@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RefreshCw, PlusCircle, Settings, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck } from 'lucide-react';
+import { RefreshCw, PlusCircle, Settings, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck, Database } from 'lucide-react';
 import { User } from '../types';
 import { AVAILABLE_PROFILES } from '../services/authService';
 
@@ -16,6 +16,7 @@ interface NavbarProps {
   currentUser: User | null;
   onLogout: () => void;
   onSwitchUser?: (user: User) => void;
+  isSupabase?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -31,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onLogout,
   onSwitchUser,
+  isSupabase = false,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -84,7 +86,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                   </span>
-                  <span className="font-medium text-emerald-700">Live Terhubung</span>
+                  {isSupabase ? (
+                    <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                      <Database className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Supabase Live</span>
+                    </span>
+                  ) : (
+                    <span className="font-medium text-emerald-700">Sheets Live</span>
+                  )}
                 </>
               ) : (
                 <>

@@ -14,6 +14,21 @@ import {
 } from './services/sheetsService';
 import { getCurrentUser, logoutUser } from './services/authService';
 import { getAuditLogs, recordAuditLog, clearAuditLogs } from './services/auditService';
+import { getSupabaseConfig } from './services/supabaseClient';
+import {
+  fetchOrdersFromSupabase,
+  fetchExpensesFromSupabase,
+  fetchCashflowFromSupabase,
+  fetchAuditLogsFromSupabase,
+  createOrderInSupabase,
+  updateOrderStatusInSupabase,
+  createExpenseInSupabase,
+  createBatchExpensesInSupabase,
+  updateExpenseSisaInSupabase,
+  insertAuditLogInSupabase,
+  clearAuditLogsInSupabase,
+  subscribeToSupabaseChanges,
+} from './services/supabaseService';
 import { OrderItem, ExpenseItem, CashflowItem, DashboardMetrics, User, AuditLog } from './types';
 import { Navbar } from './components/Navbar';
 import { MetricCards } from './components/MetricCards';
@@ -55,6 +70,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
+  const [isSupabaseActive, setIsSupabaseActive] = useState<boolean>(() => getSupabaseConfig().isConfigured);
   const [autoSync, setAutoSync] = useState<boolean>(true);
 
   // Modals
@@ -72,7 +88,7 @@ export default function App() {
   };
 
   // Helper to record an audit action
-  const logAudit = (
+  const logAudit = async (
     action: AuditLog['action'],
     category: AuditLog['category'],
     description: string,
@@ -87,11 +103,60 @@ export default function App() {
       details,
     });
     setAuditLogs((prev) => [newEntry, ...prev]);
+
+    // Also persist to Supabase if configured
+    if (getSupabaseConfig().isConfigured) {
+      try {
+        await insertAuditLogInSupabase(newEntry);
+      } catch (err) {
+        console.error('Failed to write audit log to Supabase:', err);
+      }
+    }
   };
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!currentUser) return;
     if (!isSilent) setIsLoading(true);
+
+    const sbConfig = getSupabaseConfig();
+
+    if (sbConfig.isConfigured) {
+      try {
+        const [fetchedOrders, fetchedExpenses, fetchedCashflow] = await Promise.all([
+          fetchOrdersFromSupabase(),
+          fetchExpensesFromSupabase(),
+          fetchCashflowFromSupabase(),
+        ]);
+
+        setOrders(fetchedOrders);
+        setExpenses(fetchedExpenses);
+        setCashflow(fetchedCashflow);
+        setMetrics(calculateMetrics(fetchedOrders, fetchedExpenses, fetchedCashflow));
+        setLastUpdated(new Date());
+        setIsLiveConnected(true);
+        setIsSupabaseActive(true);
+
+        // Fetch Supabase audit logs
+        try {
+          const sbLogs = await fetchAuditLogsFromSupabase();
+          if (sbLogs && sbLogs.length > 0) {
+            setAuditLogs(sbLogs);
+          }
+        } catch (logErr) {
+          console.warn('Could not fetch audit logs from Supabase:', logErr);
+        }
+
+        if (!isSilent) {
+          showToast('Data berhasil disinkronkan dengan Supabase Database!');
+          logAudit('SYNC_SHEETS', 'Sistem', 'Sinkronisasi manual dengan Supabase Database');
+        }
+        return;
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to Google Sheets:', err);
+      }
+    }
+
+    // Fallback: Google Sheets or Local Offline
     try {
       const [fetchedOrders, fetchedExpenses, fetchedCashflow] = await Promise.all([
         fetchOrders(sheetId),
@@ -105,15 +170,16 @@ export default function App() {
       setMetrics(calculateMetrics(fetchedOrders, fetchedExpenses, fetchedCashflow));
       setLastUpdated(new Date());
       setIsLiveConnected(true);
+      setIsSupabaseActive(false);
 
       if (!isSilent) {
         showToast('Data berhasil disinkronkan dengan Google Sheets!');
-        logAudit('SYNC_SHEETS', 'Sistem', 'Sinkronisasi manual data dengan Google Sheets', `ID Sheet: ${sheetId}`);
+        logAudit('SYNC_SHEETS', 'Sistem', 'Sinkronisasi manual dengan Google Sheets', `ID Sheet: ${sheetId}`);
       }
     } catch (err) {
       console.error('Failed to sync sheet data:', err);
       setIsLiveConnected(false);
-      showToast('Gagal terhubung ke Google Sheet, menampilkan cache offline.');
+      showToast('Gagal terhubung ke database/sheet, menampilkan cache offline.');
     } finally {
       if (!isSilent) setIsLoading(false);
     }
@@ -126,14 +192,30 @@ export default function App() {
     }
   }, [loadData, currentUser]);
 
-  // Auto-sync polling every 30 seconds
+  // Supabase Real-time Subscriptions (No polling needed for Supabase!)
   useEffect(() => {
-    if (!autoSync || !currentUser) return;
+    if (!currentUser) return;
+    const config = getSupabaseConfig();
+    if (!config.isConfigured) return;
+
+    const unsubscribe = subscribeToSupabaseChanges(() => {
+      // Received Postgres real-time event
+      loadData(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser, loadData, isSupabaseActive]);
+
+  // Polling fallback every 30 seconds for Google Sheets mode
+  useEffect(() => {
+    if (!autoSync || !currentUser || isSupabaseActive) return;
     const interval = setInterval(() => {
       loadData(true);
     }, 30000);
     return () => clearInterval(interval);
-  }, [autoSync, loadData, currentUser]);
+  }, [autoSync, loadData, currentUser, isSupabaseActive]);
 
   // Handle Login
   const handleLoginSuccess = (user: User) => {
@@ -148,6 +230,10 @@ export default function App() {
     });
     setAuditLogs((prev) => [newLog, ...prev]);
     showToast(`Selamat datang, Admin ${user.name}!`);
+
+    if (getSupabaseConfig().isConfigured) {
+      insertAuditLogInSupabase(newLog).catch(console.error);
+    }
   };
 
   // Handle Logout
@@ -162,6 +248,10 @@ export default function App() {
         details: 'Sesi ditutup dengan aman',
       });
       setAuditLogs((prev) => [newLog, ...prev]);
+
+      if (getSupabaseConfig().isConfigured) {
+        insertAuditLogInSupabase(newLog).catch(console.error);
+      }
     }
     logoutUser();
     setCurrentUser(null);
@@ -169,7 +259,7 @@ export default function App() {
   };
 
   // Toggle Order Paid Status
-  const handleToggleStatus = (orderId: string) => {
+  const handleToggleStatus = async (orderId: string) => {
     let changedOrderName = '';
     let nextStatus = '';
     let updatedOrderObj: OrderItem | null = null;
@@ -192,11 +282,6 @@ export default function App() {
       return updated;
     });
 
-    if (updatedOrderObj) {
-      postOrderStatusToSheet(updatedOrderObj);
-      setTimeout(() => loadData(true), 2000);
-    }
-
     logAudit(
       'UPDATE_ORDER',
       'Pesanan',
@@ -204,23 +289,43 @@ export default function App() {
       `Status diperbarui menjadi: ${nextStatus} (ID: ${orderId})`
     );
 
-    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
-    if (hasAppsScript) {
-      showToast(`Status ${changedOrderName} diperbarui & disinkronkan ke Google Sheet!`);
-    } else {
-      showToast(`Status ${changedOrderName} diperbarui di web (Masukkan Web App URL di ⚙️ agar terupdate di Google Sheet).`);
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await updateOrderStatusInSupabase(
+        orderId,
+        nextStatus,
+        updatedOrderObj?.pembayaran
+      );
+      if (success) {
+        showToast(`Status ${changedOrderName} berhasil diperbarui di Supabase!`);
+      } else {
+        showToast(`Gagal menyimpan status ke Supabase.`);
+      }
+    }
+
+    // Also update Google Sheet if Apps Script is configured
+    if (updatedOrderObj) {
+      postOrderStatusToSheet(updatedOrderObj);
+    }
+
+    if (!sbConfig.isConfigured) {
+      const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+      if (hasAppsScript) {
+        showToast(`Status ${changedOrderName} diperbarui & disinkronkan ke Google Sheet!`);
+      } else {
+        showToast(`Status ${changedOrderName} diperbarui di web.`);
+      }
+      setTimeout(() => loadData(true), 2000);
     }
   };
 
   // Add New Order
-  const handleAddOrder = (newOrder: OrderItem) => {
+  const handleAddOrder = async (newOrder: OrderItem) => {
     setOrders((prev) => {
       const updated = [newOrder, ...prev];
       setMetrics(calculateMetrics(updated, expenses, cashflow));
       return updated;
     });
-    postOrderToSheet(newOrder);
-    setTimeout(() => loadData(true), 2500);
 
     logAudit(
       'CREATE_ORDER',
@@ -229,23 +334,37 @@ export default function App() {
       `${newOrder.qty} cup • ${formatRupiah(newOrder.amount)} • Bayar: ${newOrder.pembayaran} • Batch: ${newOrder.batch || '-'}`
     );
 
-    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
-    if (hasAppsScript) {
-      showToast(`Pesanan untuk ${newOrder.namaPemesan} berhasil dicatat & dikirim ke Sheet!`);
-    } else {
-      showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat di web (Masukkan Web App URL di ⚙️ agar tercatat di Google Sheet).`);
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await createOrderInSupabase(newOrder);
+      if (success) {
+        showToast(`Pesanan untuk ${newOrder.namaPemesan} tersimpan di Database Supabase!`);
+      } else {
+        showToast(`Gagal menyimpan pesanan ke Supabase.`);
+      }
+    }
+
+    // Also send to Google Sheet if configured
+    postOrderToSheet(newOrder);
+
+    if (!sbConfig.isConfigured) {
+      const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+      if (hasAppsScript) {
+        showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat & dikirim ke Sheet!`);
+      } else {
+        showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat di web.`);
+      }
+      setTimeout(() => loadData(true), 2500);
     }
   };
 
   // Add New Expense
-  const handleAddExpense = (newExpense: ExpenseItem) => {
+  const handleAddExpense = async (newExpense: ExpenseItem) => {
     setExpenses((prev) => {
       const updated = [newExpense, ...prev];
       setMetrics(calculateMetrics(orders, updated, cashflow));
       return updated;
     });
-    postExpenseToSheet(newExpense);
-    setTimeout(() => loadData(true), 2500);
 
     logAudit(
       'CREATE_EXPENSE',
@@ -254,16 +373,31 @@ export default function App() {
       `${newExpense.qty} item • ${formatRupiah(newExpense.totalAmount)} • Kategori: ${newExpense.category}`
     );
 
-    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
-    if (hasAppsScript) {
-      showToast(`Pengeluaran ${newExpense.item} berhasil dicatat & dikirim ke Sheet!`);
-    } else {
-      showToast(`Pengeluaran ${newExpense.item} dicatat di web (Masukkan Web App URL di ⚙️ agar tercatat di Google Sheet).`);
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await createExpenseInSupabase(newExpense);
+      if (success) {
+        showToast(`Pengeluaran ${newExpense.item} tersimpan di Database Supabase!`);
+      } else {
+        showToast(`Gagal menyimpan pengeluaran ke Supabase.`);
+      }
+    }
+
+    postExpenseToSheet(newExpense);
+
+    if (!sbConfig.isConfigured) {
+      const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+      if (hasAppsScript) {
+        showToast(`Pengeluaran ${newExpense.item} dicatat & dikirim ke Sheet!`);
+      } else {
+        showToast(`Pengeluaran ${newExpense.item} dicatat di web.`);
+      }
+      setTimeout(() => loadData(true), 2500);
     }
   };
 
   // Add Multiple Expenses at once (Batch)
-  const handleAddMultipleExpenses = (newExpenses: ExpenseItem[]) => {
+  const handleAddMultipleExpenses = async (newExpenses: ExpenseItem[]) => {
     if (newExpenses.length === 0) return;
 
     setExpenses((prev) => {
@@ -271,9 +405,6 @@ export default function App() {
       setMetrics(calculateMetrics(orders, updated, cashflow));
       return updated;
     });
-
-    postExpensesBatchToSheet(newExpenses);
-    setTimeout(() => loadData(true), 3000);
 
     const totalNominal = newExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
     const itemSummary = newExpenses.map((e) => e.item).join(', ');
@@ -285,16 +416,31 @@ export default function App() {
       `Item: ${itemSummary}`
     );
 
-    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
-    if (hasAppsScript) {
-      showToast(`${newExpenses.length} item belanja berhasil dicatat & dikirim ke Sheet!`);
-    } else {
-      showToast(`${newExpenses.length} item belanja dicatat di web.`);
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await createBatchExpensesInSupabase(newExpenses);
+      if (success) {
+        showToast(`${newExpenses.length} belanjaan tersimpan di Supabase!`);
+      } else {
+        showToast(`Gagal menyimpan batch belanja ke Supabase.`);
+      }
+    }
+
+    postExpensesBatchToSheet(newExpenses);
+
+    if (!sbConfig.isConfigured) {
+      const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+      if (hasAppsScript) {
+        showToast(`${newExpenses.length} item belanja dicatat & dikirim ke Sheet!`);
+      } else {
+        showToast(`${newExpenses.length} item belanja dicatat di web.`);
+      }
+      setTimeout(() => loadData(true), 3000);
     }
   };
 
   // Update Sisa Qty of an Expense Item
-  const handleUpdateExpenseSisa = (expenseId: string, newSisaQty: string | number) => {
+  const handleUpdateExpenseSisa = async (expenseId: string, newSisaQty: string | number) => {
     let targetItem = '';
     let updatedExpObj: ExpenseItem | null = null;
 
@@ -313,11 +459,6 @@ export default function App() {
       return updated;
     });
 
-    if (updatedExpObj) {
-      postExpenseSisaQtyToSheet(updatedExpObj, newSisaQty);
-      setTimeout(() => loadData(true), 2500);
-    }
-
     logAudit(
       'UPDATE_EXPENSE',
       'Pengeluaran',
@@ -325,11 +466,28 @@ export default function App() {
       `Sisa Qty diperbarui menjadi: ${newSisaQty}`
     );
 
-    const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
-    if (hasAppsScript) {
-      showToast(`Sisa stok ${targetItem} (${newSisaQty}) disimpan & disinkronkan ke Sheet!`);
-    } else {
-      showToast(`Sisa stok ${targetItem} (${newSisaQty}) diperbarui di web.`);
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await updateExpenseSisaInSupabase(expenseId, newSisaQty);
+      if (success) {
+        showToast(`Sisa stok ${targetItem} (${newSisaQty}) tersimpan di Supabase!`);
+      } else {
+        showToast(`Gagal menyimpan sisa stok ke Supabase.`);
+      }
+    }
+
+    if (updatedExpObj) {
+      postExpenseSisaQtyToSheet(updatedExpObj, newSisaQty);
+    }
+
+    if (!sbConfig.isConfigured) {
+      const hasAppsScript = Boolean(localStorage.getItem('mango_apps_script_url'));
+      if (hasAppsScript) {
+        showToast(`Sisa stok ${targetItem} (${newSisaQty}) disimpan & disinkronkan ke Sheet!`);
+      } else {
+        showToast(`Sisa stok ${targetItem} (${newSisaQty}) diperbarui di web.`);
+      }
+      setTimeout(() => loadData(true), 2500);
     }
   };
 
@@ -347,7 +505,7 @@ export default function App() {
     showToast('ID Spreadsheet diperbarui!');
   };
 
-  const handleClearLogs = () => {
+  const handleClearLogs = async () => {
     const isSam =
       currentUser?.name?.toLowerCase() === 'sam' ||
       currentUser?.email?.toLowerCase().startsWith('sam') ||
@@ -356,7 +514,11 @@ export default function App() {
       showToast('Akses ditolak: Hanya Admin Sam yang berwenang mereset riwayat log!');
       return;
     }
+
     clearAuditLogs(currentUser?.name || 'Sam');
+    if (getSupabaseConfig().isConfigured) {
+      await clearAuditLogsInSupabase();
+    }
     setAuditLogs(getAuditLogs());
     showToast('Riwayat audit log berhasil direset oleh Sam.');
   };
@@ -397,6 +559,7 @@ export default function App() {
         isLiveConnected={isLiveConnected}
         currentUser={currentUser}
         onLogout={handleLogout}
+        isSupabase={isSupabaseActive}
       />
 
       {/* Main Container (Full Screen) */}
@@ -493,13 +656,15 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 w-full">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>🥭 Mango Tracker • Terhubung ke Google Spreadsheet Live</span>
+          <span>
+            🥭 Mango Tracker • {isSupabaseActive ? '⚡ Terhubung ke Supabase Database Live' : 'Terhubung ke Google Spreadsheet Live'}
+          </span>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSettingsModalOpen(true)}
               className="hover:underline text-amber-600 font-medium cursor-pointer"
             >
-              Pengaturan & Audit Log Sistem
+              Pengaturan Database & Audit Log
             </button>
           </div>
         </div>
@@ -528,6 +693,10 @@ export default function App() {
         logs={auditLogs}
         onClearLogs={handleClearLogs}
         currentUser={currentUser}
+        onDatabaseConfigured={() => {
+          setIsSupabaseActive(getSupabaseConfig().isConfigured);
+          loadData(false);
+        }}
       />
     </div>
   );
