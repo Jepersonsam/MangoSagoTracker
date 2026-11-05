@@ -100,8 +100,12 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
       {/* Mobile Card List View (Phones) */}
       <div className="sm:hidden divide-y divide-slate-100">
         {filtered.length === 0 ? (
-          <div className="py-10 text-center text-slate-400 text-xs">
-            Tidak ada catatan kas.
+          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-indigo-200 shadow-2xs space-y-2 m-3">
+            <span className="text-3xl block">📖</span>
+            <p className="text-xs font-bold text-slate-700">Belum Ada Mutasi Buku Kas</p>
+            <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+              Mutasi kas masuk (debit) otomatis tercatat saat pesanan lunas, dan uang keluar (kredit) tercatat saat belanja bahan.
+            </p>
           </div>
         ) : (
           filtered.map((cf) => {
@@ -188,8 +192,14 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
-                  Tidak ada catatan kas.
+                <td colSpan={7} className="py-12 text-center">
+                  <div className="max-w-xs mx-auto space-y-2">
+                    <span className="text-3xl block">📖</span>
+                    <p className="text-xs font-bold text-slate-700">Belum Ada Mutasi Buku Kas</p>
+                    <p className="text-[11px] text-slate-500">
+                      Mutasi kas masuk otomatis tercatat saat pesanan lunas, dan kas keluar tercatat saat belanja dicatat.
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (

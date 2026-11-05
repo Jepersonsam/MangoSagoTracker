@@ -88,25 +88,56 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
       );
     }
 
+    const currentNum = typeof exp.sisaQty === 'number' ? exp.sisaQty : parseInt(String(exp.sisaQty || 0), 10) || 0;
+
+    const handleQuickAdjust = (diff: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const nextVal = Math.max(0, currentNum + diff);
+      if (onUpdateSisaQty) {
+        onUpdateSisaQty(exp.id, nextVal);
+      }
+    };
+
     return (
-      <button
-        type="button"
-        onClick={() => handleStartEdit(exp)}
-        title="Klik untuk ubah sisa stok"
-        className="group inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full transition cursor-pointer hover:ring-2 hover:ring-amber-400/70 hover:bg-amber-50/50"
-      >
-        {exp.sisaQty === '0' || exp.sisaQty === 0 ? (
-          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-medium group-hover:bg-amber-100 group-hover:text-amber-800 flex items-center gap-1">
-            <span>Habis (0)</span>
-            <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-slate-500 group-hover:text-amber-700" />
-          </span>
-        ) : (
-          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold group-hover:bg-emerald-100 flex items-center gap-1">
-            <span>Sisa: {exp.sisaQty}</span>
-            <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-emerald-600" />
-          </span>
-        )}
-      </button>
+      <div className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          onClick={(e) => handleQuickAdjust(-1, e)}
+          disabled={currentNum <= 0}
+          title="Kurangi sisa stok 1"
+          className="w-5 h-5 rounded-md bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 font-bold text-xs flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+        >
+          -
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleStartEdit(exp)}
+          title="Klik untuk ubah sisa stok"
+          className="group inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full transition cursor-pointer hover:ring-2 hover:ring-amber-400/70 hover:bg-amber-50/50"
+        >
+          {currentNum === 0 ? (
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-medium group-hover:bg-amber-100 group-hover:text-amber-800 flex items-center gap-1">
+              <span>Habis (0)</span>
+              <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-slate-500 group-hover:text-amber-700" />
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold group-hover:bg-emerald-100 flex items-center gap-1">
+              <span>Sisa: {exp.sisaQty}</span>
+              <Pencil className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 text-emerald-600" />
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => handleQuickAdjust(1, e)}
+          title="Tambah sisa stok 1"
+          className="w-5 h-5 rounded-md bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-500 font-bold text-xs flex items-center justify-center transition cursor-pointer"
+        >
+          +
+        </button>
+      </div>
     );
   };
 
@@ -240,8 +271,32 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
       {/* --- A. TAMPILAN MOBILE CARD LIST (HP) --- */}
       <div className="sm:hidden p-3.5 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
         {filteredExpenses.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs">
-            Tidak ada data belanja yang sesuai filter.
+          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-rose-300 shadow-2xs space-y-3">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-2xl shadow-inner">
+              🛒
+            </div>
+            <h4 className="text-sm font-bold text-slate-800">
+              Belum Ada Data Pengeluaran
+            </h4>
+            <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+              Catat belanja bahan mangga, susu, cup, atau operasional sekarang.
+            </p>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onOpenNewExpense('single')}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer"
+              >
+                + 1 Item
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenNewExpense('batch')}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer"
+              >
+                Belanja Sekaligus (Multi)
+              </button>
+            </div>
           </div>
         ) : (
           filteredExpenses.map((exp) => (
@@ -313,8 +368,27 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
           <tbody className="divide-y divide-slate-100">
             {filteredExpenses.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-400">
-                  Tidak ada data belanja yang sesuai filter.
+                <td colSpan={8} className="py-12 text-center">
+                  <div className="max-w-xs mx-auto space-y-2">
+                    <span className="text-3xl block">🛒</span>
+                    <p className="text-xs font-bold text-slate-700">Belum ada data belanja yang sesuai filter</p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onOpenNewExpense('single')}
+                        className="px-3 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"
+                      >
+                        + 1 Item
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenNewExpense('batch')}
+                        className="px-3 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs cursor-pointer"
+                      >
+                        Belanja Sekaligus (Multi)
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
             ) : (

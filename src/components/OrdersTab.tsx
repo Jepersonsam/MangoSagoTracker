@@ -830,8 +830,18 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
         {/* --- A. TAMPILAN KHUSUS MOBILE: CARD LIST (HP) --- */}
         <div className="sm:hidden space-y-2 max-h-80 overflow-y-auto scrollbar-thin pr-0.5">
           {activeOrdersForView.length === 0 ? (
-            <div className="p-6 bg-white border border-slate-200 rounded-xl text-center text-slate-400 text-xs">
-              Tidak ada transaksi pada tanggal ini.
+            <div className="p-8 bg-white border border-dashed border-amber-300 rounded-2xl text-center space-y-2.5 shadow-2xs">
+              <span className="text-3xl block">🥭</span>
+              <p className="text-xs font-bold text-slate-700">Belum ada pesanan pada filter ini</p>
+              <p className="text-[11px] text-slate-500">Mulai input pesanan pembeli sekarang.</p>
+              <button
+                type="button"
+                onClick={onOpenNewOrder}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Catat Pesanan Baru</span>
+              </button>
             </div>
           ) : (
             activeOrdersForView.map((ord) => {
@@ -963,8 +973,20 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {activeOrdersForView.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400">
-                      Tidak ada transaksi pada tanggal ini atau filter yang dipilih.
+                    <td colSpan={8} className="py-12 text-center">
+                      <div className="max-w-xs mx-auto space-y-2.5">
+                        <span className="text-3xl block">🥭</span>
+                        <p className="text-xs font-bold text-slate-700">Belum ada pesanan pada filter ini</p>
+                        <p className="text-[11px] text-slate-500">Mulai input pesanan pembeli sekarang.</p>
+                        <button
+                          type="button"
+                          onClick={onOpenNewOrder}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Catat Pesanan Baru</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (

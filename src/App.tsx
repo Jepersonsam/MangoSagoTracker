@@ -808,8 +808,19 @@ export default function App() {
         </div>
       </main>
 
+      {/* Floating Action Button for Mobile */}
+      <div className="fixed bottom-5 right-4 z-40 sm:hidden flex flex-col items-end gap-2">
+        <button
+          onClick={() => setIsOrderModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-linear-to-r from-amber-500 to-orange-500 text-white font-bold text-xs shadow-lg shadow-amber-500/30 active:scale-95 transition cursor-pointer"
+        >
+          <span className="text-base">🥭</span>
+          <span>+ Pesanan</span>
+        </button>
+      </div>
+
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 w-full">
+      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 w-full mb-14 sm:mb-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
             🥭 Mango Tracker • {isSupabaseActive ? '⚡ Supabase Real-Time Database Engine' : 'Supabase Database Belum Dikonfigurasi'}
