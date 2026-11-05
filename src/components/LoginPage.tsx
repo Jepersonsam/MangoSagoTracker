@@ -11,7 +11,7 @@ import {
   Calendar,
   Layers,
   TrendingUp,
-  FileSpreadsheet,
+  Database,
 } from 'lucide-react';
 import { loginUser } from '../services/authService';
 import { User } from '../types';
@@ -70,7 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               Mango Sago Tracker
             </h1>
             <p className="text-xs text-amber-100 font-medium">
-              Live Google Sheets Sales & Expense Ecosystem
+              Real-time Database Cloud Ecosystem
             </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               Pantau Penjualan & Laba Realtime Tanpa Ribet
             </h2>
             <p className="text-sm sm:text-base text-amber-100/90 max-w-lg leading-relaxed">
-              Catat penjualan per tanggal, kelola pengeluaran bahan & kemasan, serta pantau buku kas otomatis yang tersinkronisasi langsung dengan Google Sheets Anda.
+              Catat penjualan per tanggal, kelola pengeluaran bahan & kemasan, serta pantau buku kas otomatis yang tersinkronisasi langsung dengan Database Supabase.
             </p>
           </div>
 
@@ -101,10 +101,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-start gap-3">
-              <FileSpreadsheet className="w-5 h-5 text-amber-200 shrink-0 mt-0.5" />
+              <Database className="w-5 h-5 text-amber-200 shrink-0 mt-0.5" />
               <div>
-                <div className="font-bold text-xs text-white">Sync Google Sheets</div>
-                <div className="text-[11px] text-amber-100/80">Tersambung langsung dengan data spreadsheet online Anda.</div>
+                <div className="font-bold text-xs text-white">Supabase Cloud Database</div>
+                <div className="text-[11px] text-amber-100/80">Database PostgreSQL modern dengan sinkronisasi real-time instan.</div>
               </div>
             </div>
 

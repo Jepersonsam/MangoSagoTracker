@@ -13,7 +13,7 @@ export interface AuditLog {
   formattedDate: string;
   userName: string;
   userRole: string;
-  action: 'LOGIN' | 'LOGOUT' | 'CREATE_ORDER' | 'UPDATE_ORDER' | 'CREATE_EXPENSE' | 'UPDATE_EXPENSE' | 'SYNC_SHEETS' | 'UPDATE_SETTINGS' | 'CLEAR_LOGS';
+  action: 'LOGIN' | 'LOGOUT' | 'CREATE_ORDER' | 'UPDATE_ORDER' | 'CREATE_EXPENSE' | 'UPDATE_EXPENSE' | 'SYNC_DATABASE' | 'SYNC_SHEETS' | 'UPDATE_SETTINGS' | 'CLEAR_LOGS';
   category: 'Autentikasi' | 'Pesanan' | 'Pengeluaran' | 'Sistem';
   description: string;
   details?: string;

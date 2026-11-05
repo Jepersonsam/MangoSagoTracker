@@ -34,10 +34,10 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     }).format(new Date(Date.now() - 3600000)),
     userName: 'Tia',
     userRole: 'Admin',
-    action: 'SYNC_SHEETS',
+    action: 'SYNC_DATABASE',
     category: 'Sistem',
-    description: 'Sinkronisasi database dengan Google Sheets Live',
-    details: 'Sheet ID: 1CyxgDHZAuE5iH5jB7YbHCEuJ9awKmNhJ0-IzV4BGvY4',
+    description: 'Sinkronisasi database dengan Supabase PostgreSQL',
+    details: 'Project Ref: ibwckwhcercnegypmuni',
   },
   {
     id: 'log-seed-3',

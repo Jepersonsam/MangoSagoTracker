@@ -145,7 +145,7 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
                 Pengaturan Database & Sistem
               </h2>
               <p className="text-xs text-slate-500">
-                Aplikasi menggunakan database Supabase PostgreSQL murni (Real-time & Tanpa Spreadsheet)
+                Aplikasi terhubung langsung ke database Supabase PostgreSQL (Real-time Cloud)
               </p>
             </div>
           </div>

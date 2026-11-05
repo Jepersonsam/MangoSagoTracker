@@ -9,8 +9,8 @@ interface NewOrderModalProps {
   onAddOrder: (order: OrderItem) => void;
 }
 
-// Convert "YYYY-MM-DD" into spreadsheet format "D MMM YY" (e.g. "30 Oct 26", "3 Nov 26")
-function formatDateForSheet(isoDateStr: string): string {
+// Format date "YYYY-MM-DD" into readable format "D MMM YY" (e.g. "30 Oct 26", "3 Nov 26")
+function formatDateDisplay(isoDateStr: string): string {
   if (!isoDateStr) return '';
   const parts = isoDateStr.split('-').map(Number);
   if (parts.length !== 3) return isoDateStr;
@@ -76,7 +76,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const numQty = qty === '' ? 0 : Number(qty);
   const numPrice = unitPrice === '' ? 0 : Number(unitPrice);
   const totalAmount = numQty * numPrice;
-  const formattedSheetDate = formatDateForSheet(dateIso);
+  const formattedDate = formatDateDisplay(dateIso);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +89,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
     const newOrder: OrderItem = {
       id: `ord-local-${Date.now()}`,
-      tanggal: formattedSheetDate,
+      tanggal: formattedDate,
       namaPemesan: namaPemesan.trim(),
       qty: finalQty,
       amount: finalTotal,
@@ -139,7 +139,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                 <span>Tanggal Pesanan (Kalender)</span>
               </label>
               <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                {formattedSheetDate}
+                {formattedDate}
               </span>
             </div>
 

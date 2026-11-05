@@ -121,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              title="Sinkronisasi data terbaru dari Google Sheets"
+              title="Sinkronisasi data terbaru dari Supabase Database"
               className="inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition border border-slate-200 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin text-amber-600' : ''}`} />
