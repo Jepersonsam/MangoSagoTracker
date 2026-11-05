@@ -14,10 +14,13 @@ export const BroadcastBanner: React.FC<BroadcastBannerProps> = ({
   canManage,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (!broadcast || !broadcast.active || isDismissed) {
     return null;
   }
+
+  const isLongMessage = broadcast.message.length > 160;
 
   const getTypeStyles = () => {
     switch (broadcast.type) {
@@ -71,9 +74,20 @@ export const BroadcastBanner: React.FC<BroadcastBannerProps> = ({
               </span>
             </div>
             
-            <p className="text-xs sm:text-sm font-semibold text-white leading-relaxed break-words">
-              {broadcast.message}
-            </p>
+            <div className="space-y-1">
+              <p className={`text-xs sm:text-sm font-semibold text-white leading-relaxed break-words whitespace-pre-line ${!isExpanded && isLongMessage ? 'line-clamp-2 sm:line-clamp-3' : ''}`}>
+                {broadcast.message}
+              </p>
+              {isLongMessage && (
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-[11px] font-bold text-white/95 underline hover:text-white transition cursor-pointer"
+                >
+                  {isExpanded ? '▲ Ringkas Pesan' : '▼ Baca Selengkapnya'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
