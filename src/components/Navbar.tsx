@@ -55,19 +55,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs w-full">
-      <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+      <div className="w-full px-2.5 sm:px-6 lg:px-8 xl:px-10">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5">
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl sm:text-2xl shadow-inner border border-amber-200 shrink-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-lg sm:text-2xl shadow-inner border border-amber-200 shrink-0">
               🥭
             </div>
             <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="font-bold text-sm sm:text-lg text-slate-900 leading-tight">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <h1 className="font-bold text-xs sm:text-lg text-slate-900 leading-tight">
                   Mango Sago
                 </h1>
-                <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-bold bg-amber-100 text-amber-800 px-1.5 sm:px-2 py-0.5 rounded-full">
+                <span className="hidden sm:inline-block text-[9px] sm:text-[10px] uppercase tracking-wider font-bold bg-amber-100 text-amber-800 px-1.5 sm:px-2 py-0.5 rounded-full">
                   Live
                 </span>
               </div>
@@ -117,12 +117,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Action Buttons & User Menu */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
             <button
               onClick={onRefresh}
               disabled={isLoading}
               title="Sinkronisasi data terbaru dari Supabase Database"
-              className="inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition border border-slate-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition border border-slate-200 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin text-amber-600' : ''}`} />
             </button>
@@ -137,10 +137,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onOpenNewOrder}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm shadow-amber-500/20 transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm shadow-amber-500/20 transition active:scale-95 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Pesanan</span>
+              <span className="hidden xs:inline">Pesanan</span>
             </button>
 
             {/* Sheet Settings button */}

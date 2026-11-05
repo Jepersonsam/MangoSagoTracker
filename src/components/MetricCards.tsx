@@ -77,7 +77,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics }) => {
         return (
           <div
             key={idx}
-            className={`bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition relative overflow-hidden flex flex-col justify-between ${card.colSpan}`}
+            className={`bg-white rounded-2xl p-2.5 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition relative overflow-hidden flex flex-col justify-between min-w-0 ${card.colSpan}`}
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">

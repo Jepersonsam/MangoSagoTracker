@@ -258,8 +258,8 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
       <div
-        className={`bg-white rounded-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto ${
-          mode === 'batch' ? 'max-w-4xl max-h-[92vh] flex flex-col' : 'max-w-md'
+        className={`bg-white rounded-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[92vh] flex flex-col ${
+          mode === 'batch' ? 'max-w-4xl' : 'max-w-md'
         }`}
       >
         {/* Header */}
@@ -642,7 +642,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
         {/* MODE B: SATU ITEM SAJA (SINGLE ITEM EXPENSE)             */}
         {/* ======================================================== */}
         {mode === 'single' && (
-          <form onSubmit={handleSingleSubmit} className="p-5 space-y-4 text-xs">
+          <form onSubmit={handleSingleSubmit} className="p-4 sm:p-5 space-y-3 sm:space-y-4 text-xs overflow-y-auto flex-1 scrollbar-thin">
             {/* Kolom Tanggal Kalender */}
             <div>
               <div className="flex items-center justify-between mb-1">

@@ -336,7 +336,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const calMonthTitle = calDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden space-y-0">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden space-y-0 w-full max-w-full min-w-0">
       {/* Top Header & View Switcher */}
       <div className="p-3.5 sm:p-5 border-b border-slate-200 bg-linear-to-r from-amber-50/50 via-white to-orange-50/30">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
@@ -828,7 +828,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
         </div>
 
         {/* --- A. TAMPILAN KHUSUS MOBILE: CARD LIST (HP) --- */}
-        <div className="sm:hidden space-y-2 max-h-80 overflow-y-auto scrollbar-thin pr-0.5">
+        <div className="sm:hidden space-y-2.5">
           {activeOrdersForView.length === 0 ? (
             <div className="p-8 bg-white border border-dashed border-amber-300 rounded-2xl text-center space-y-2.5 shadow-2xs">
               <span className="text-3xl block">🥭</span>

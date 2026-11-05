@@ -46,18 +46,18 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div 
         className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
         {/* Header with Red Warning Accent */}
-        <div className="p-6 pb-4 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 shadow-xs">
-            <AlertTriangle className="w-6 h-6 animate-pulse" />
+        <div className="p-4 sm:p-6 pb-3 sm:pb-4 flex items-start gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 shadow-xs">
+            <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
           </div>
-          <div className="flex-1 pr-6">
+          <div className="flex-1 pr-2 sm:pr-6">
             <h3 className="text-lg font-bold text-slate-800 leading-snug">
               {getHeadingTitle()}
             </h3>
@@ -75,7 +75,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         </div>
 
         {/* Item Preview Card */}
-        <div className="px-6 py-3">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3">
           <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -154,7 +154,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onClose}

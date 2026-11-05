@@ -187,7 +187,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden w-full max-w-full min-w-0">
       {/* Header */}
       <div className="p-3.5 sm:p-5 border-b border-slate-200">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -269,7 +269,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
       </div>
 
       {/* --- A. TAMPILAN MOBILE CARD LIST (HP) --- */}
-      <div className="sm:hidden p-3.5 space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+      <div className="sm:hidden p-3.5 space-y-2.5">
         {filteredExpenses.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-rose-300 shadow-2xs space-y-3">
             <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-2xl shadow-inner">

@@ -40,7 +40,7 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden w-full max-w-full min-w-0">
       {/* Header */}
       <div className="p-4 sm:p-5 border-b border-slate-200">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

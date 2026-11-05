@@ -705,7 +705,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1">
+      <main className="w-full max-w-full overflow-hidden px-2.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-6 space-y-3.5 sm:space-y-6 flex-1">
         {/* KPI Metric Cards */}
         <MetricCards metrics={metrics} />
 
@@ -713,19 +713,19 @@ export default function App() {
         <ChartsSection orders={orders} expenses={expenses} />
 
         {/* Tab Navigation */}
-        <div className="flex items-center justify-between border-b border-slate-200 pt-1 sm:pt-2 overflow-x-auto scrollbar-none">
-          <div className="flex space-x-1 sm:space-x-4 pb-1 shrink-0">
+        <div className="border-b border-slate-200 pt-1 sm:pt-2 w-full">
+          <div className="grid grid-cols-3 sm:flex sm:space-x-4 pb-1 gap-1 w-full">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer text-center ${
                 activeTab === 'orders'
                   ? 'border-amber-500 text-amber-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Penjualan</span>
-              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
+              <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">Penjualan</span>
+              <span className={`text-[9px] sm:text-[11px] px-1 sm:px-2 py-0.2 sm:py-0.5 rounded-full shrink-0 ${
                 activeTab === 'orders' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {orders.length}
@@ -734,15 +734,15 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('expenses')}
-              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer text-center ${
                 activeTab === 'expenses'
                   ? 'border-rose-500 text-rose-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Pengeluaran</span>
-              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">Belanja</span>
+              <span className={`text-[9px] sm:text-[11px] px-1 sm:px-2 py-0.2 sm:py-0.5 rounded-full shrink-0 ${
                 activeTab === 'expenses' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {expenses.length}
@@ -751,15 +751,15 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('cashflow')}
-              className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2.5 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer shrink-0 ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer text-center ${
                 activeTab === 'cashflow'
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Landmark className="w-4 h-4" />
-              <span>Buku Kas</span>
-              <span className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full ${
+              <Landmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">Buku Kas</span>
+              <span className={`text-[9px] sm:text-[11px] px-1 sm:px-2 py-0.2 sm:py-0.5 rounded-full shrink-0 ${
                 activeTab === 'cashflow' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
               }`}>
                 {cashflow.length}
