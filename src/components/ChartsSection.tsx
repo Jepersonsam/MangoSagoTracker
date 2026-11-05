@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -22,6 +22,16 @@ interface ChartsSectionProps {
 
 export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }) => {
   const [showOnMobile, setShowOnMobile] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const checkIsDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkIsDesktop();
+    window.addEventListener('resize', checkIsDesktop);
+    return () => window.removeEventListener('resize', checkIsDesktop);
+  }, []);
+
+  const shouldRenderCharts = isDesktop || showOnMobile;
   // Aggregate sales by date
   const salesByDateMap: Record<string, { tanggal: string; omset: number; cups: number }> = {};
   orders.forEach((ord) => {
@@ -79,8 +89,9 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
         </button>
       </div>
 
-      {/* Grid container: Always shown on desktop, toggleable on mobile */}
-      <div className={`${showOnMobile ? 'grid' : 'hidden lg:grid'} grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 w-full min-w-0`}>
+      {/* Grid container: Only rendered if desktop or user opened it on mobile */}
+      {shouldRenderCharts && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 w-full min-w-0">
         {/* Chart 1: Penjualan per Tanggal */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/90 shadow-xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -185,6 +196,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

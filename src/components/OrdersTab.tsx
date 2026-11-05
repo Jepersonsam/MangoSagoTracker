@@ -354,13 +354,13 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {/* View Mode Toggle */}
-            <div className="flex items-center p-0.5 sm:p-1 bg-slate-100 rounded-xl text-[11px] sm:text-xs font-semibold">
+            <div className="grid grid-cols-3 sm:flex items-center p-0.5 sm:p-1 bg-slate-100 rounded-xl text-[11px] sm:text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setDisplayMode('slide')}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-center ${
                   displayMode === 'slide'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -373,7 +373,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() => setDisplayMode('calendar')}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-center ${
                   displayMode === 'calendar'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -386,7 +386,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() => setDisplayMode('table')}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-center ${
                   displayMode === 'table'
                     ? 'bg-amber-500 text-white shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -397,7 +397,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5">
               <button
                 onClick={handleExportCsv}
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition cursor-pointer"
@@ -771,9 +771,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
               <span>
                 {displayMode === 'slide'
-                  ? `Tanggal ${currentSlide?.tanggal || '-'}`
+                  ? currentSlide?.tanggal ? `Tanggal ${currentSlide.tanggal}` : 'Daftar Pesanan'
                   : displayMode === 'calendar'
-                  ? `Tanggal ${calSelectedDateStr || 'Pilih di Kalender'}`
+                  ? calSelectedDateStr ? `Tanggal ${calSelectedDateStr}` : 'Kalender Pesanan'
                   : 'Semua Pesanan'}
               </span>
             </h3>
