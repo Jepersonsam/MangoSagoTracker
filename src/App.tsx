@@ -10,9 +10,13 @@ import {
   fetchAuditLogsFromSupabase,
   createOrderInSupabase,
   updateOrderStatusInSupabase,
+  updateOrderInSupabase,
+  deleteOrderInSupabase,
   createExpenseInSupabase,
   createBatchExpensesInSupabase,
   updateExpenseSisaInSupabase,
+  updateExpenseInSupabase,
+  deleteExpenseInSupabase,
   insertAuditLogInSupabase,
   clearAuditLogsInSupabase,
   subscribeToSupabaseChanges,
@@ -25,7 +29,9 @@ import { OrdersTab } from './components/OrdersTab';
 import { ExpensesTab } from './components/ExpensesTab';
 import { CashflowTab } from './components/CashflowTab';
 import { NewOrderModal } from './components/NewOrderModal';
+import { EditOrderModal } from './components/EditOrderModal';
 import { NewExpenseModal } from './components/NewExpenseModal';
+import { EditExpenseModal } from './components/EditExpenseModal';
 import { SheetSettingsModal } from './components/SheetSettingsModal';
 import { LoginPage } from './components/LoginPage';
 import { ShoppingBag, ShoppingCart, Landmark } from 'lucide-react';
@@ -60,8 +66,14 @@ export default function App() {
 
   // Modals
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<OrderItem | null>(null);
+  const [isEditOrderModalOpen, setIsEditOrderModalOpen] = useState(false);
+
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseModalMode, setExpenseModalMode] = useState<'single' | 'batch'>('batch');
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
+  const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
+
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Toast
@@ -226,7 +238,38 @@ export default function App() {
     showToast('Anda telah berhasil keluar (logout).');
   };
 
-  // Toggle Order Paid Status
+  // ===================== CRUD ORDERS =====================
+
+  // CREATE ORDER
+  const handleAddOrder = async (newOrder: OrderItem) => {
+    setOrders((prev) => {
+      const updated = [newOrder, ...prev];
+      setMetrics(calculateMetrics(updated, expenses, cashflow));
+      return updated;
+    });
+
+    logAudit(
+      'CREATE_ORDER',
+      'Pesanan',
+      `Menambah pesanan baru: ${newOrder.namaPemesan}`,
+      `${newOrder.qty} cup • ${formatRupiah(newOrder.amount)} • Bayar: ${newOrder.pembayaran} • Batch: ${newOrder.batch || '-'}`
+    );
+
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await createOrderInSupabase(newOrder);
+      if (success) {
+        showToast(`Pesanan untuk ${newOrder.namaPemesan} tersimpan di Supabase!`);
+        setTimeout(() => loadData(true), 500);
+      } else {
+        showToast(`Gagal menyimpan pesanan ke Supabase.`);
+      }
+    } else {
+      showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat di web.`);
+    }
+  };
+
+  // UPDATE ORDER (Toggle Paid Status)
   const handleToggleStatus = async (orderId: string) => {
     let changedOrderName = '';
     let nextStatus = '';
@@ -272,40 +315,72 @@ export default function App() {
         showToast(`Gagal menyimpan perubahan ke Supabase.`);
       }
     } else {
-      showToast(`Status ${changedOrderName} diperbarui di web (Konfigurasikan Supabase di ⚙️ untuk penyimpanan cloud).`);
+      showToast(`Status ${changedOrderName} diperbarui di web.`);
     }
   };
 
-  // Add New Order
-  const handleAddOrder = async (newOrder: OrderItem) => {
+  // UPDATE ORDER (Full Edit)
+  const handleEditOrder = async (updatedOrder: OrderItem) => {
     setOrders((prev) => {
-      const updated = [newOrder, ...prev];
+      const updated = prev.map((ord) => (ord.id === updatedOrder.id ? updatedOrder : ord));
       setMetrics(calculateMetrics(updated, expenses, cashflow));
       return updated;
     });
 
     logAudit(
-      'CREATE_ORDER',
+      'UPDATE_ORDER',
       'Pesanan',
-      `Menambah pesanan baru: ${newOrder.namaPemesan}`,
-      `${newOrder.qty} cup • ${formatRupiah(newOrder.amount)} • Bayar: ${newOrder.pembayaran} • Batch: ${newOrder.batch || '-'}`
+      `Mengedit pesanan: ${updatedOrder.namaPemesan}`,
+      `${updatedOrder.qty} cup • ${formatRupiah(updatedOrder.amount)} • Status: ${updatedOrder.status} • Bayar: ${updatedOrder.pembayaran}`
     );
 
     const sbConfig = getSupabaseConfig();
     if (sbConfig.isConfigured) {
-      const success = await createOrderInSupabase(newOrder);
+      const success = await updateOrderInSupabase(updatedOrder);
       if (success) {
-        showToast(`Pesanan untuk ${newOrder.namaPemesan} tersimpan di Supabase!`);
+        showToast(`Pesanan ${updatedOrder.namaPemesan} berhasil diperbarui di Supabase!`);
         setTimeout(() => loadData(true), 500);
       } else {
-        showToast(`Gagal menyimpan pesanan ke Supabase.`);
+        showToast(`Gagal mengedit pesanan di Supabase.`);
       }
     } else {
-      showToast(`Pesanan untuk ${newOrder.namaPemesan} dicatat di web.`);
+      showToast(`Pesanan ${updatedOrder.namaPemesan} diperbarui di web.`);
     }
   };
 
-  // Add New Expense
+  // DELETE ORDER
+  const handleDeleteOrder = async (orderId: string) => {
+    const target = orders.find((o) => o.id === orderId);
+    setOrders((prev) => {
+      const updated = prev.filter((o) => o.id !== orderId);
+      setMetrics(calculateMetrics(updated, expenses, cashflow));
+      return updated;
+    });
+
+    logAudit(
+      'UPDATE_ORDER',
+      'Pesanan',
+      `Menghapus pesanan: ${target?.namaPemesan || 'Pelanggan'}`,
+      `ID: ${orderId}`
+    );
+
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await deleteOrderInSupabase(orderId);
+      if (success) {
+        showToast(`Pesanan ${target?.namaPemesan || ''} berhasil dihapus dari Supabase!`);
+        setTimeout(() => loadData(true), 500);
+      } else {
+        showToast(`Gagal menghapus pesanan di Supabase.`);
+      }
+    } else {
+      showToast(`Pesanan berhasil dihapus di web.`);
+    }
+  };
+
+  // ===================== CRUD EXPENSES =====================
+
+  // CREATE EXPENSE (Single)
   const handleAddExpense = async (newExpense: ExpenseItem) => {
     setExpenses((prev) => {
       const updated = [newExpense, ...prev];
@@ -334,7 +409,7 @@ export default function App() {
     }
   };
 
-  // Add Multiple Expenses at once (Batch)
+  // CREATE EXPENSES (Batch Multi-Item)
   const handleAddMultipleExpenses = async (newExpenses: ExpenseItem[]) => {
     if (newExpenses.length === 0) return;
 
@@ -368,7 +443,7 @@ export default function App() {
     }
   };
 
-  // Update Sisa Qty of an Expense Item
+  // UPDATE EXPENSE SISA QTY (Inline)
   const handleUpdateExpenseSisa = async (expenseId: string, newSisaQty: string | number) => {
     let targetItem = '';
 
@@ -406,6 +481,66 @@ export default function App() {
     }
   };
 
+  // UPDATE EXPENSE (Full Edit)
+  const handleEditExpense = async (updatedExpense: ExpenseItem) => {
+    setExpenses((prev) => {
+      const updated = prev.map((exp) => (exp.id === updatedExpense.id ? updatedExpense : exp));
+      setMetrics(calculateMetrics(orders, updated, cashflow));
+      return updated;
+    });
+
+    logAudit(
+      'UPDATE_EXPENSE',
+      'Pengeluaran',
+      `Mengedit belanja: ${updatedExpense.item}`,
+      `${updatedExpense.qty} item • ${formatRupiah(updatedExpense.totalAmount)} • Kategori: ${updatedExpense.category}`
+    );
+
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await updateExpenseInSupabase(updatedExpense);
+      if (success) {
+        showToast(`Pengeluaran ${updatedExpense.item} berhasil diperbarui di Supabase!`);
+        setTimeout(() => loadData(true), 500);
+      } else {
+        showToast(`Gagal mengedit belanja di Supabase.`);
+      }
+    } else {
+      showToast(`Pengeluaran ${updatedExpense.item} diperbarui di web.`);
+    }
+  };
+
+  // DELETE EXPENSE
+  const handleDeleteExpense = async (expenseId: string) => {
+    const target = expenses.find((e) => e.id === expenseId);
+    setExpenses((prev) => {
+      const updated = prev.filter((e) => e.id !== expenseId);
+      setMetrics(calculateMetrics(orders, updated, cashflow));
+      return updated;
+    });
+
+    logAudit(
+      'UPDATE_EXPENSE',
+      'Pengeluaran',
+      `Menghapus belanja: ${target?.item || expenseId}`,
+      `ID: ${expenseId}`
+    );
+
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await deleteExpenseInSupabase(expenseId);
+      if (success) {
+        showToast(`Pengeluaran ${target?.item || ''} berhasil dihapus dari Supabase!`);
+        setTimeout(() => loadData(true), 500);
+      } else {
+        showToast(`Gagal menghapus pengeluaran di Supabase.`);
+      }
+    } else {
+      showToast(`Pengeluaran berhasil dihapus di web.`);
+    }
+  };
+
+  // ===================== AUDIT LOGS =====================
   const handleClearLogs = async () => {
     const isSam =
       currentUser?.name?.toLowerCase() === 'sam' ||
@@ -534,6 +669,11 @@ export default function App() {
               orders={orders}
               onToggleStatus={handleToggleStatus}
               onOpenNewOrder={() => setIsOrderModalOpen(true)}
+              onEditOrder={(ord) => {
+                setEditingOrder(ord);
+                setIsEditOrderModalOpen(true);
+              }}
+              onDeleteOrder={handleDeleteOrder}
             />
           )}
 
@@ -545,6 +685,11 @@ export default function App() {
                 setIsExpenseModalOpen(true);
               }}
               onUpdateSisaQty={handleUpdateExpenseSisa}
+              onEditExpense={(exp) => {
+                setEditingExpense(exp);
+                setIsEditExpenseModalOpen(true);
+              }}
+              onDeleteExpense={handleDeleteExpense}
             />
           )}
 
@@ -578,12 +723,34 @@ export default function App() {
         onAddOrder={handleAddOrder}
       />
 
+      <EditOrderModal
+        isOpen={isEditOrderModalOpen}
+        onClose={() => {
+          setIsEditOrderModalOpen(false);
+          setEditingOrder(null);
+        }}
+        order={editingOrder}
+        onUpdateOrder={handleEditOrder}
+        onDeleteOrder={handleDeleteOrder}
+      />
+
       <NewExpenseModal
         isOpen={isExpenseModalOpen}
         onClose={() => setIsExpenseModalOpen(false)}
         onAddExpense={handleAddExpense}
         onAddMultipleExpenses={handleAddMultipleExpenses}
         initialMode={expenseModalMode}
+      />
+
+      <EditExpenseModal
+        isOpen={isEditExpenseModalOpen}
+        onClose={() => {
+          setIsEditExpenseModalOpen(false);
+          setEditingExpense(null);
+        }}
+        expense={editingExpense}
+        onUpdateExpense={handleEditExpense}
+        onDeleteExpense={handleDeleteExpense}
       />
 
       <SheetSettingsModal

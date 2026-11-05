@@ -15,6 +15,8 @@ import {
   Sun,
   Moon,
   Info,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { OrderItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
@@ -23,6 +25,8 @@ interface OrdersTabProps {
   orders: OrderItem[];
   onToggleStatus: (id: string) => void;
   onOpenNewOrder: () => void;
+  onEditOrder?: (order: OrderItem) => void;
+  onDeleteOrder?: (id: string) => void;
 }
 
 type DisplayMode = 'slide' | 'calendar' | 'table';
@@ -112,6 +116,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   orders,
   onToggleStatus,
   onOpenNewOrder,
+  onEditOrder,
+  onDeleteOrder,
 }) => {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('slide');
   const [searchTerm, setSearchTerm] = useState('');
@@ -901,16 +907,36 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => onToggleStatus(ord.id)}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition cursor-pointer ${
-                        isPaid
-                          ? 'text-slate-500 hover:text-slate-800 bg-slate-100'
-                          : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-                      }`}
-                    >
-                      {isPaid ? 'Batal Lunas' : '✓ Tandai Lunas'}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => onToggleStatus(ord.id)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md transition cursor-pointer ${
+                          isPaid
+                            ? 'text-slate-500 hover:text-slate-800 bg-slate-100'
+                            : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
+                      >
+                        {isPaid ? 'Batal Lunas' : '✓ Lunas'}
+                      </button>
+                      {onEditOrder && (
+                        <button
+                          onClick={() => onEditOrder(ord)}
+                          className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition cursor-pointer"
+                          title="Edit Pesanan"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {onDeleteOrder && (
+                        <button
+                          onClick={() => onDeleteOrder(ord.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                          title="Hapus Pesanan"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -1011,16 +1037,36 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                           </div>
                         </td>
                         <td className="py-2 px-3 text-center whitespace-nowrap">
-                          <button
-                            onClick={() => onToggleStatus(ord.id)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded transition cursor-pointer ${
-                              isPaid
-                                ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-                                : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-                            }`}
-                          >
-                            {isPaid ? 'Batal Lunas' : '✓ Tandai Lunas'}
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => onToggleStatus(ord.id)}
+                              className={`text-[10px] font-bold px-2 py-1 rounded transition cursor-pointer ${
+                                isPaid
+                                  ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                              }`}
+                            >
+                              {isPaid ? 'Batal Lunas' : '✓ Tandai Lunas'}
+                            </button>
+                            {onEditOrder && (
+                              <button
+                                onClick={() => onEditOrder(ord)}
+                                className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition cursor-pointer"
+                                title="Edit Pesanan"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {onDeleteOrder && (
+                              <button
+                                onClick={() => onDeleteOrder(ord.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                title="Hapus Pesanan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

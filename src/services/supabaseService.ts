@@ -163,6 +163,49 @@ export async function updateOrderStatusInSupabase(
   return true;
 }
 
+export async function updateOrderInSupabase(order: OrderItem): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const updates: Partial<SupabaseOrderRow> = {
+    tanggal: order.tanggal,
+    nama_pemesan: order.namaPemesan,
+    qty: order.qty,
+    amount: order.amount,
+    status: order.status,
+    note: order.note || '',
+    pembayaran: order.pembayaran || '-',
+    batch: order.batch || null,
+  };
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updates)
+    .eq('id', order.id);
+
+  if (error) {
+    console.error('Supabase update full order error:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteOrderInSupabase(orderId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('Supabase delete order error:', error);
+    return false;
+  }
+  return true;
+}
+
 // ------------------- Expenses -------------------
 
 export async function fetchExpensesFromSupabase(): Promise<ExpenseItem[]> {
@@ -290,6 +333,48 @@ export async function updateExpenseSisaInSupabase(
 
   if (error) {
     console.error('Supabase update expense sisa error:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateExpenseInSupabase(expense: ExpenseItem): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const updates: Partial<SupabaseExpenseRow> = {
+    tanggal: expense.tanggal,
+    item: expense.item,
+    unit_price: expense.unitPrice,
+    qty: expense.qty,
+    total_amount: expense.totalAmount,
+    sisa_qty: expense.sisaQty !== undefined && expense.sisaQty !== null ? String(expense.sisaQty) : '0',
+    category: expense.category,
+  };
+
+  const { error } = await supabase
+    .from('expenses')
+    .update(updates)
+    .eq('id', expense.id);
+
+  if (error) {
+    console.error('Supabase update full expense error:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteExpenseInSupabase(expenseId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', expenseId);
+
+  if (error) {
+    console.error('Supabase delete expense error:', error);
     return false;
   }
   return true;

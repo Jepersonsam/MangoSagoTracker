@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt } from 'lucide-react';
+import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt, Trash2 } from 'lucide-react';
 import { ExpenseItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
@@ -7,12 +7,16 @@ interface ExpensesTabProps {
   expenses: ExpenseItem[];
   onOpenNewExpense: (mode?: 'single' | 'batch') => void;
   onUpdateSisaQty?: (expenseId: string, newSisaQty: string | number) => void;
+  onEditExpense?: (expense: ExpenseItem) => void;
+  onDeleteExpense?: (expenseId: string) => void;
 }
 
 export const ExpensesTab: React.FC<ExpensesTabProps> = ({
   expenses,
   onOpenNewExpense,
   onUpdateSisaQty,
+  onEditExpense,
+  onDeleteExpense,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Bahan Baku' | 'Kemasan' | 'Operasional'>('All');
@@ -264,8 +268,26 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
                 <span className="font-black text-rose-600">
                   {formatRupiah(exp.totalAmount)}
                 </span>
-                <div>
+                <div className="flex items-center gap-1">
                   {renderSisaQtyBadge(exp)}
+                  {onEditExpense && (
+                    <button
+                      onClick={() => onEditExpense(exp)}
+                      className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                      title="Edit Pengeluaran"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {onDeleteExpense && (
+                    <button
+                      onClick={() => onDeleteExpense(exp.id)}
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                      title="Hapus Pengeluaran"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -285,12 +307,13 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               <th className="py-3 px-4 text-center">Qty</th>
               <th className="py-3 px-4 text-right">Total Biaya</th>
               <th className="py-3 px-4 text-center">Sisa Qty</th>
+              <th className="py-3 px-4 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredExpenses.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
+                <td colSpan={8} className="py-8 text-center text-slate-400">
                   Tidak ada data belanja yang sesuai filter.
                 </td>
               </tr>
@@ -319,6 +342,28 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
                   </td>
                   <td className="py-3 px-4 text-center whitespace-nowrap">
                     {renderSisaQtyBadge(exp)}
+                  </td>
+                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1">
+                      {onEditExpense && (
+                        <button
+                          onClick={() => onEditExpense(exp)}
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                          title="Edit Pengeluaran"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {onDeleteExpense && (
+                        <button
+                          onClick={() => onDeleteExpense(exp.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                          title="Hapus Pengeluaran"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
