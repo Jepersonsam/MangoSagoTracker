@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RefreshCw, PlusCircle, Settings, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck, Database } from 'lucide-react';
+import { RefreshCw, PlusCircle, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck, Database, ClipboardList } from 'lucide-react';
 import { User } from '../types';
 import { AVAILABLE_PROFILES } from '../services/authService';
 
@@ -143,13 +143,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden xs:inline">Pesanan</span>
             </button>
 
-            {/* Sheet Settings button */}
+            {/* Audit Log button */}
             <button
               onClick={onOpenSettings}
-              title="Pengaturan & Audit Log"
+              title="Riwayat Aktivitas & Audit Log"
               className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
             >
-              <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />
             </button>
 
             {/* User Profile Menu */}
@@ -243,8 +243,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }}
                         className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium"
                       >
-                        <Settings className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Pengaturan & Audit Log</span>
+                        <ClipboardList className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Riwayat Aktivitas (Audit Log)</span>
                       </button>
                     </div>
 

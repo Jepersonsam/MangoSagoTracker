@@ -830,7 +830,7 @@ export default function App() {
               onClick={() => setIsSettingsModalOpen(true)}
               className="hover:underline text-amber-600 font-medium cursor-pointer"
             >
-              Pengaturan Database & Audit Log
+              Riwayat Aktivitas & Audit Log
             </button>
           </div>
         </div>
