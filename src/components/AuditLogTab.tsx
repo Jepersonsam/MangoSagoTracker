@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Settings,
   Lock,
+  Megaphone,
 } from 'lucide-react';
 import { AuditLog, User } from '../types';
 
@@ -41,7 +42,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
   const admins = ['All', 'Ebi', 'Tia', 'Sam'];
 
   // Categories
-  const categories = ['All', 'Autentikasi', 'Pesanan', 'Pengeluaran', 'Sistem'];
+  const categories = ['All', 'Autentikasi', 'Pesanan', 'Pengeluaran', 'Sistem', 'Pengumuman'];
 
   // Filtered logs
   const filteredLogs = logs.filter((log) => {
@@ -128,6 +129,13 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
             <Settings className="w-3 h-3 text-indigo-600" />
             Pengaturan
+          </span>
+        );
+      case 'BROADCAST':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200">
+            <Megaphone className="w-3 h-3 text-rose-600" />
+            Broadcast
           </span>
         );
       default:

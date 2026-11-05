@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RefreshCw, PlusCircle, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck, Database, ClipboardList } from 'lucide-react';
+import { RefreshCw, PlusCircle, AlertCircle, LogOut, ChevronDown, Shield, ShoppingBag, Check, UserCheck, Database, ClipboardList, Megaphone } from 'lucide-react';
 import { User } from '../types';
 import { AVAILABLE_PROFILES } from '../services/authService';
 
@@ -12,6 +12,8 @@ interface NavbarProps {
   onOpenNewOrder: () => void;
   onOpenNewExpense: () => void;
   onOpenSettings: () => void;
+  onOpenBroadcast?: () => void;
+  hasActiveBroadcast?: boolean;
   isLiveConnected: boolean;
   currentUser: User | null;
   onLogout: () => void;
@@ -28,6 +30,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewOrder,
   onOpenNewExpense,
   onOpenSettings,
+  onOpenBroadcast,
+  hasActiveBroadcast = false,
   isLiveConnected,
   currentUser,
   onLogout,
@@ -143,6 +147,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden xs:inline">Pesanan</span>
             </button>
 
+            {/* Broadcast Pengumuman button */}
+            {onOpenBroadcast && (
+              <button
+                onClick={onOpenBroadcast}
+                title="Broadcast Pengumuman Tim"
+                className="relative p-1.5 sm:p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer"
+              >
+                <Megaphone className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${hasActiveBroadcast ? 'text-rose-600' : 'text-slate-600'}`} />
+                {hasActiveBroadcast && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Audit Log button */}
             <button
               onClick={onOpenSettings}
@@ -235,6 +256,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <PlusCircle className="w-3.5 h-3.5 text-rose-500" />
                         <span>Catat Belanja Baru</span>
                       </button>
+
+                      {onOpenBroadcast && (
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onOpenBroadcast();
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium"
+                        >
+                          <Megaphone className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Broadcast Pengumuman Tim</span>
+                        </button>
+                      )}
 
                       <button
                         onClick={() => {

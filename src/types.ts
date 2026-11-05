@@ -13,10 +13,19 @@ export interface AuditLog {
   formattedDate: string;
   userName: string;
   userRole: string;
-  action: 'LOGIN' | 'LOGOUT' | 'CREATE_ORDER' | 'UPDATE_ORDER' | 'CREATE_EXPENSE' | 'UPDATE_EXPENSE' | 'SYNC_DATABASE' | 'SYNC_SHEETS' | 'UPDATE_SETTINGS' | 'CLEAR_LOGS';
-  category: 'Autentikasi' | 'Pesanan' | 'Pengeluaran' | 'Sistem';
+  action: 'LOGIN' | 'LOGOUT' | 'CREATE_ORDER' | 'UPDATE_ORDER' | 'CREATE_EXPENSE' | 'UPDATE_EXPENSE' | 'SYNC_DATABASE' | 'SYNC_SHEETS' | 'UPDATE_SETTINGS' | 'CLEAR_LOGS' | 'BROADCAST';
+  category: 'Autentikasi' | 'Pesanan' | 'Pengeluaran' | 'Sistem' | 'Pengumuman';
   description: string;
   details?: string;
+}
+
+export interface BroadcastMessage {
+  id?: string;
+  message: string;
+  type: 'urgent' | 'warning' | 'info';
+  author: string;
+  createdAt: string;
+  active: boolean;
 }
 
 export interface OrderItem {

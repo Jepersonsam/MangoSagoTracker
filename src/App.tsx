@@ -35,8 +35,11 @@ import { NewExpenseModal } from './components/NewExpenseModal';
 import { EditExpenseModal } from './components/EditExpenseModal';
 import { SheetSettingsModal } from './components/SheetSettingsModal';
 import { ConfirmDeleteModal, DeleteConfirmTarget } from './components/ConfirmDeleteModal';
+import { BroadcastBanner } from './components/BroadcastBanner';
+import { BroadcastModal } from './components/BroadcastModal';
 import { LoginPage } from './components/LoginPage';
 import { ShoppingBag, ShoppingCart, Landmark } from 'lucide-react';
+import { BroadcastMessage } from './types';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
@@ -78,6 +81,19 @@ export default function App() {
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
+  // Broadcast State
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [activeBroadcast, setActiveBroadcast] = useState<BroadcastMessage | null>(() => {
+    try {
+      const saved = localStorage.getItem('mango_active_broadcast');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.active) return parsed;
+      }
+    } catch (e) {}
+    return null;
+  });
+
   // Delete Confirmation Modal State
   const [deleteTarget, setDeleteTarget] = useState<DeleteConfirmTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -114,6 +130,58 @@ export default function App() {
         console.error('Failed to write audit log to Supabase:', err);
       }
     }
+  };
+
+  // Sync active broadcast from audit logs
+  useEffect(() => {
+    const latestBroadcastLog = auditLogs.find((l) => l.action === 'BROADCAST');
+    if (latestBroadcastLog) {
+      try {
+        if (latestBroadcastLog.details) {
+          const parsed = JSON.parse(latestBroadcastLog.details);
+          if (parsed && typeof parsed.active === 'boolean') {
+            if (parsed.active) {
+              const item: BroadcastMessage = {
+                message: parsed.message || latestBroadcastLog.description,
+                type: parsed.type || 'warning',
+                author: parsed.author || latestBroadcastLog.userName,
+                createdAt: parsed.createdAt || latestBroadcastLog.formattedDate,
+                active: true,
+              };
+              setActiveBroadcast(item);
+              localStorage.setItem('mango_active_broadcast', JSON.stringify(item));
+            } else {
+              setActiveBroadcast(null);
+              localStorage.removeItem('mango_active_broadcast');
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }, [auditLogs]);
+
+  const handleSaveBroadcast = async (broadcast: BroadcastMessage) => {
+    setActiveBroadcast(broadcast);
+    localStorage.setItem('mango_active_broadcast', JSON.stringify(broadcast));
+    await logAudit(
+      'BROADCAST',
+      'Pengumuman',
+      broadcast.message,
+      JSON.stringify(broadcast)
+    );
+    showToast('📢 Pengumuman berhasil diterbitkan ke seluruh tim!');
+  };
+
+  const handleClearBroadcast = async () => {
+    setActiveBroadcast(null);
+    localStorage.removeItem('mango_active_broadcast');
+    await logAudit(
+      'BROADCAST',
+      'Pengumuman',
+      'Pengumuman tim dinonaktifkan',
+      JSON.stringify({ active: false })
+    );
+    showToast('Pengumuman telah dimatikan.');
   };
 
   const loadData = useCallback(async (isSilent = false) => {
@@ -699,6 +767,8 @@ export default function App() {
         onOpenNewOrder={() => setIsOrderModalOpen(true)}
         onOpenNewExpense={() => setIsExpenseModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenBroadcast={() => setIsBroadcastModalOpen(true)}
+        hasActiveBroadcast={Boolean(activeBroadcast?.active)}
         isLiveConnected={isLiveConnected}
         currentUser={currentUser}
         onLogout={handleLogout}
@@ -707,6 +777,13 @@ export default function App() {
 
       {/* Main Container */}
       <main className="w-full max-w-full overflow-hidden px-2.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-6 space-y-3.5 sm:space-y-6 flex-1">
+        {/* Broadcast Announcement Banner */}
+        <BroadcastBanner
+          broadcast={activeBroadcast}
+          onOpenManage={() => setIsBroadcastModalOpen(true)}
+          canManage={true}
+        />
+
         {/* KPI Metric Cards */}
         <MetricCards metrics={metrics} />
 
@@ -884,6 +961,16 @@ export default function App() {
           setIsSupabaseActive(getSupabaseConfig().isConfigured);
           loadData(false);
         }}
+      />
+
+      {/* Broadcast Announcement Modal */}
+      <BroadcastModal
+        isOpen={isBroadcastModalOpen}
+        onClose={() => setIsBroadcastModalOpen(false)}
+        currentBroadcast={activeBroadcast}
+        onSaveBroadcast={handleSaveBroadcast}
+        onClearBroadcast={handleClearBroadcast}
+        currentUser={currentUser}
       />
 
       {/* Delete Confirmation Warning Modal */}
