@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ShieldAlert,
   Search,
@@ -18,6 +18,9 @@ import {
   Settings,
   Lock,
   Megaphone,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { AuditLog, User } from '../types';
 
@@ -31,6 +34,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
   const [searchTerm, setSearchTerm] = useState('');
   const [adminFilter, setAdminFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   const isSam =
@@ -45,18 +49,26 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
   const categories = ['All', 'Autentikasi', 'Pesanan', 'Pengeluaran', 'Sistem', 'Pengumuman'];
 
   // Filtered logs
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredLogs = useMemo(() => {
+    const list = logs.filter((log) => {
+      const matchesSearch =
+        log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.action.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesAdmin = adminFilter === 'All' || log.userName.toLowerCase() === adminFilter.toLowerCase();
-    const matchesCat = categoryFilter === 'All' || log.category === categoryFilter;
+      const matchesAdmin = adminFilter === 'All' || log.userName.toLowerCase() === adminFilter.toLowerCase();
+      const matchesCat = categoryFilter === 'All' || log.category === categoryFilter;
 
-    return matchesSearch && matchesAdmin && matchesCat;
-  });
+      return matchesSearch && matchesAdmin && matchesCat;
+    });
+
+    return [...list].sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime() || 0;
+      const timeB = new Date(b.timestamp).getTime() || 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }, [logs, searchTerm, adminFilter, categoryFilter, dateSortOrder]);
 
   const handleExportCsv = () => {
     const header = ['ID', 'Waktu', 'Admin', 'Peran', 'Kategori', 'Aksi', 'Deskripsi', 'Detail'];
@@ -168,6 +180,17 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Sort Date Toggle */}
+            <button
+              type="button"
+              onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+              title={`Urutkan Waktu: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition cursor-pointer"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
+              <span>{dateSortOrder === 'desc' ? 'Waktu: DESC ↓' : 'Waktu: ASC ↑'}</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportCsv}
@@ -290,7 +313,22 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th className="py-3 px-4 whitespace-nowrap">Waktu & Tanggal</th>
+              <th
+                onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+                className="py-3 px-4 whitespace-nowrap cursor-pointer hover:bg-slate-200 transition select-none group"
+                title={`Klik untuk ubah urutan waktu (${dateSortOrder === 'desc' ? 'DESC -> ASC' : 'ASC -> DESC'})`}
+              >
+                <div className="flex items-center gap-1.5 text-slate-800">
+                  <span>Waktu & Tanggal</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-800 font-extrabold flex items-center gap-0.5">
+                    {dateSortOrder === 'desc' ? (
+                      <><span>DESC</span><ArrowDown className="w-3 h-3" /></>
+                    ) : (
+                      <><span>ASC</span><ArrowUp className="w-3 h-3" /></>
+                    )}
+                  </span>
+                </div>
+              </th>
               <th className="py-3 px-4">Admin</th>
               <th className="py-3 px-4 text-center">Aksi / Tipe</th>
               <th className="py-3 px-4">Deskripsi Aktivitas</th>

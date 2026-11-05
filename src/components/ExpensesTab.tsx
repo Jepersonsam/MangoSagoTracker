@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { ExpenseItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
+import { parseDateString } from './OrdersTab';
 
 interface ExpensesTabProps {
   expenses: ExpenseItem[];
@@ -20,6 +21,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Bahan Baku' | 'Kemasan' | 'Operasional'>('All');
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
@@ -141,14 +143,22 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
     );
   };
 
-  const filteredExpenses = expenses.filter((exp) => {
-    const matchesSearch =
-      exp.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'All' || exp.category === categoryFilter;
+  const filteredExpenses = useMemo(() => {
+    const list = expenses.filter((exp) => {
+      const matchesSearch =
+        exp.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'All' || exp.category === categoryFilter;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    });
+
+    return [...list].sort((a, b) => {
+      const timeA = parseDateString(a.tanggal)?.getTime() || 0;
+      const timeB = parseDateString(b.tanggal)?.getTime() || 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }, [expenses, searchTerm, categoryFilter, dateSortOrder]);
 
   const totalFilteredAmount = filteredExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
@@ -260,11 +270,22 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
           </div>
         </div>
 
-        {/* Total Summary */}
-        <div className="mt-2.5 flex items-center gap-2 text-xs">
+        {/* Total Summary & Sort */}
+        <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
           <div className="px-2.5 py-1 bg-rose-50 text-rose-800 rounded-md font-medium border border-rose-200/60 text-[11px] sm:text-xs">
             Total Pengeluaran: <span className="font-bold">{formatRupiah(totalFilteredAmount)}</span>
           </div>
+
+          {/* Sort Date Toggle */}
+          <button
+            type="button"
+            onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+            title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+            className="py-1 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 text-rose-600" />
+            <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
+          </button>
         </div>
       </div>
 
@@ -355,7 +376,22 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th className="py-3 px-4">Tanggal</th>
+              <th
+                onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+                className="py-3 px-4 cursor-pointer hover:bg-slate-200 transition select-none group"
+                title={`Klik untuk ubah urutan tanggal (${dateSortOrder === 'desc' ? 'DESC -> ASC' : 'ASC -> DESC'})`}
+              >
+                <div className="flex items-center gap-1.5 text-slate-800">
+                  <span>Tanggal</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-rose-100 text-rose-800 font-extrabold flex items-center gap-0.5">
+                    {dateSortOrder === 'desc' ? (
+                      <><span>DESC</span><ArrowDown className="w-3 h-3" /></>
+                    ) : (
+                      <><span>ASC</span><ArrowUp className="w-3 h-3" /></>
+                    )}
+                  </span>
+                </div>
+              </th>
               <th className="py-3 px-4">Nama Item / Bahan</th>
               <th className="py-3 px-4">Kategori</th>
               <th className="py-3 px-4 text-right">Harga Satuan</th>

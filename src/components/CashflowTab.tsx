@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { CashflowItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
+import { parseDateString } from './OrdersTab';
 
 interface CashflowTabProps {
   cashflows: CashflowItem[];
@@ -10,11 +11,20 @@ interface CashflowTabProps {
 
 export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCashflow }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  const filtered = cashflows.filter((cf) =>
-    cf.transaksi.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cf.tanggal.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const list = cashflows.filter((cf) =>
+      cf.transaksi.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cf.tanggal.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return [...list].sort((a, b) => {
+      const timeA = parseDateString(a.tanggal)?.getTime() || 0;
+      const timeB = parseDateString(b.tanggal)?.getTime() || 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }, [cashflows, searchTerm, dateSortOrder]);
 
   const totalDebit = filtered.reduce((sum, cf) => sum + cf.debit, 0);
   const totalKredit = filtered.reduce((sum, cf) => sum + cf.kredit, 0);
@@ -57,6 +67,17 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Sort Date Toggle */}
+            <button
+              type="button"
+              onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+              title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition cursor-pointer"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
+            </button>
+
             <button
               onClick={handleExportCsv}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition"
@@ -180,7 +201,22 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th className="py-3 px-4">Tanggal</th>
+              <th
+                onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+                className="py-3 px-4 cursor-pointer hover:bg-slate-200 transition select-none group"
+                title={`Klik untuk ubah urutan tanggal (${dateSortOrder === 'desc' ? 'DESC -> ASC' : 'ASC -> DESC'})`}
+              >
+                <div className="flex items-center gap-1.5 text-slate-800">
+                  <span>Tanggal</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-indigo-100 text-indigo-800 font-extrabold flex items-center gap-0.5">
+                    {dateSortOrder === 'desc' ? (
+                      <><span>DESC</span><ArrowDown className="w-3 h-3" /></>
+                    ) : (
+                      <><span>ASC</span><ArrowUp className="w-3 h-3" /></>
+                    )}
+                  </span>
+                </div>
+              </th>
               <th className="py-3 px-4">Keterangan Transaksi</th>
               <th className="py-3 px-4 text-center">Tipe</th>
               <th className="py-3 px-4 text-right">Debit (Masuk)</th>

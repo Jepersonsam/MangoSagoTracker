@@ -17,6 +17,9 @@ import {
   Info,
   Pencil,
   Trash2,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { OrderItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
@@ -128,6 +131,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
   const [calDate, setCalDate] = useState(() => new Date(2026, 10, 1));
   const [calSelectedDateStr, setCalSelectedDateStr] = useState<string | null>(null);
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const dailySummaries: DateSummary[] = useMemo(() => {
     const map = new Map<string, DateSummary>();
@@ -180,12 +184,13 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
     const list = Array.from(map.values());
     list.sort((a, b) => {
-      if (a.dateObj && b.dateObj) return a.dateObj.getTime() - b.dateObj.getTime();
-      return 0;
+      const timeA = a.dateObj ? a.dateObj.getTime() : 0;
+      const timeB = b.dateObj ? b.dateObj.getTime() : 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
     });
 
     return list;
-  }, [orders]);
+  }, [orders, dateSortOrder]);
 
   // Counts for past vs future
   const upcomingDatesCount = useMemo(() => {
@@ -292,7 +297,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       baseOrders = orders;
     }
 
-    return baseOrders.filter((ord) => {
+    const filtered = baseOrders.filter((ord) => {
       const matchesSearch =
         ord.namaPemesan.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ord.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -300,7 +305,13 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       const matchesStatus = statusFilter === 'All' || ord.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [displayMode, currentSlide, calSelectedDateStr, dailySummaries, orders, searchTerm, statusFilter]);
+
+    return [...filtered].sort((a, b) => {
+      const timeA = parseDateString(a.tanggal)?.getTime() || 0;
+      const timeB = parseDateString(b.tanggal)?.getTime() || 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }, [displayMode, currentSlide, calSelectedDateStr, dailySummaries, orders, searchTerm, statusFilter, dateSortOrder]);
 
   const handleExportCsv = () => {
     const listToExport = displayMode === 'table' ? orders : activeOrdersForView;
@@ -824,6 +835,17 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <option value="Paid">Lunas</option>
               <option value="Not Paid">Belum</option>
             </select>
+
+            {/* Sort Date Toggle */}
+            <button
+              type="button"
+              onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+              title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+              className="py-1 px-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-amber-600" />
+              <span>{dateSortOrder === 'desc' ? 'DESC ↓' : 'ASC ↑'}</span>
+            </button>
           </div>
         </div>
 
@@ -960,7 +982,22 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
                 <tr>
-                  <th className="py-2.5 px-3">Tanggal Penjualan</th>
+                  <th
+                    onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+                    className="py-2.5 px-3 cursor-pointer hover:bg-slate-200 transition select-none group"
+                    title={`Klik untuk ubah urutan tanggal (${dateSortOrder === 'desc' ? 'DESC -> ASC' : 'ASC -> DESC'})`}
+                  >
+                    <div className="flex items-center gap-1.5 text-slate-800">
+                      <span>Tanggal Penjualan</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-800 font-extrabold flex items-center gap-0.5">
+                        {dateSortOrder === 'desc' ? (
+                          <><span>DESC</span><ArrowDown className="w-3 h-3" /></>
+                        ) : (
+                          <><span>ASC</span><ArrowUp className="w-3 h-3" /></>
+                        )}
+                      </span>
+                    </div>
+                  </th>
                   <th className="py-2.5 px-3">Pemesan</th>
                   <th className="py-2.5 px-3 text-center">Jumlah Cup</th>
                   <th className="py-2.5 px-3 text-right">Nominal</th>
