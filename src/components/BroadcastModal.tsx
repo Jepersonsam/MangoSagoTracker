@@ -73,7 +73,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
     setIsSubmitting(true);
     try {
       const newBroadcast: BroadcastMessage = {
-        message: message.trim(),
+        message: message.trim().slice(0, 200),
         type,
         author: currentUser?.name || 'Admin',
         createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -201,19 +201,42 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
               <label className="text-xs font-bold text-slate-700">
                 Pesan Pengumuman:
               </label>
-              <span className="text-[10px] text-slate-400">
-                {message.length}/200 karakter
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                  message.length >= 200
+                    ? 'bg-rose-100 text-rose-700 font-bold'
+                    : message.length >= 170
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {message.length >= 200
+                  ? 'Batas 200 Karakter Penuh'
+                  : `${message.length}/200 karakter (sisa ${200 - message.length})`}
               </span>
             </div>
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 200) {
+                  setMessage(e.target.value);
+                }
+              }}
               maxLength={200}
               rows={3}
               placeholder="Contoh: Batch siang sudah lunas semua. Harap cek bahan baku mangga untuk besok pagi..."
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-hidden text-xs sm:text-sm text-slate-800 placeholder:text-slate-400"
+              className={`w-full px-3.5 py-2.5 border rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-hidden transition ${
+                message.length >= 200
+                  ? 'border-rose-400 focus:ring-2 focus:ring-rose-500/20'
+                  : 'border-slate-200 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500'
+              }`}
               required
             />
+            {message.length >= 200 && (
+              <p className="text-[10px] text-rose-600 font-medium mt-1">
+                ⚠️ Anda telah mencapai batas maksimal 200 karakter.
+              </p>
+            )}
           </div>
 
           {/* Footer Actions */}
@@ -255,3 +278,4 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
     </div>
   );
 };
+
