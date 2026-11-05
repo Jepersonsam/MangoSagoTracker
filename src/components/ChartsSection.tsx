@@ -109,7 +109,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
           </div>
 
           <div className="h-48 sm:h-64 w-full min-w-0 overflow-hidden">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180}>
               <BarChart data={salesByDate} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis dataKey="tanggal" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                 <YAxis
@@ -152,7 +152,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
             </div>
 
             <div className="h-44 sm:h-48 w-full flex items-center justify-center min-w-0 overflow-hidden">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={170}>
                 <PieChart>
                   <Pie
                     data={expenseCategoryData}
