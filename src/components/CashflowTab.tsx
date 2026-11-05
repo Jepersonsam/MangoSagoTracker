@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2 } from 'lucide-react';
 import { CashflowItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
 interface CashflowTabProps {
   cashflows: CashflowItem[];
+  onDeleteCashflow?: (id: string) => void;
 }
 
-export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows }) => {
+export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCashflow }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = cashflows.filter((cf) =>
@@ -109,25 +110,36 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows }) => {
               <div key={cf.id} className="p-3.5 space-y-2 hover:bg-slate-50/50 transition">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-500 text-[11px]">{cf.tanggal}</span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isIncome
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {isIncome ? (
-                      <>
-                        <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
-                        <span>Masuk</span>
-                      </>
-                    ) : (
-                      <>
-                        <ArrowUpRight className="w-3 h-3 text-rose-600" />
-                        <span>Keluar</span>
-                      </>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isIncome
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {isIncome ? (
+                        <>
+                          <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
+                          <span>Masuk</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUpRight className="w-3 h-3 text-rose-600" />
+                          <span>Keluar</span>
+                        </>
+                      )}
+                    </span>
+                    {onDeleteCashflow && (
+                      <button
+                        onClick={() => onDeleteCashflow(cf.id)}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                        title="Hapus Catatan Kas"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </span>
+                  </div>
                 </div>
 
                 <div className="font-bold text-sm text-slate-900 leading-snug">
@@ -170,12 +182,13 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows }) => {
               <th className="py-3 px-4 text-right">Debit (Masuk)</th>
               <th className="py-3 px-4 text-right">Kredit (Keluar)</th>
               <th className="py-3 px-4 text-right">Saldo Berjalan</th>
+              <th className="py-3 px-4 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+                <td colSpan={7} className="py-8 text-center text-slate-400">
                   Tidak ada catatan kas.
                 </td>
               </tr>
@@ -221,6 +234,17 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows }) => {
                       <span className={cf.balance >= 0 ? 'text-slate-900' : 'text-rose-600'}>
                         {formatRupiah(cf.balance)}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {onDeleteCashflow && (
+                        <button
+                          onClick={() => onDeleteCashflow(cf.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                          title="Hapus Catatan Kas"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

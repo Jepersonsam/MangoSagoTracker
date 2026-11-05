@@ -599,7 +599,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
                 className="w-full py-2.5 border-2 border-dashed border-rose-300 hover:border-rose-500 hover:bg-rose-50 text-rose-700 font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Tambah Baris Item Belanja</span>
+                <span>Tambah Baris Item Belanja</span>
               </button>
             </div>
 

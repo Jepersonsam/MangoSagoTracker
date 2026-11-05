@@ -3,7 +3,7 @@ import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { formatRupiah } from '../services/sheetsService';
 
 export interface DeleteConfirmTarget {
-  type: 'order' | 'expense';
+  type: 'order' | 'expense' | 'cashflow';
   id: string;
   title: string;
   subtitle?: string;
@@ -31,6 +31,19 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   if (!isOpen || !target) return null;
 
   const isOrder = target.type === 'order';
+  const isCashflow = target.type === 'cashflow';
+
+  const getHeadingTitle = () => {
+    if (isOrder) return 'Hapus Pesanan Pelanggan?';
+    if (isCashflow) return 'Hapus Catatan Buku Kas?';
+    return 'Hapus Data Pengeluaran?';
+  };
+
+  const getItemLabel = () => {
+    if (isOrder) return 'Nama Pemesan';
+    if (isCashflow) return 'Keterangan Mutasi Kas';
+    return 'Nama Item / Bahan';
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -46,7 +59,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           </div>
           <div className="flex-1 pr-6">
             <h3 className="text-lg font-bold text-slate-800 leading-snug">
-              {isOrder ? 'Hapus Pesanan Pelanggan?' : 'Hapus Data Pengeluaran?'}
+              {getHeadingTitle()}
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Konfirmasi penghapusan data secara permanen dari sistem.
@@ -66,7 +79,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                {isOrder ? 'Nama Pemesan' : 'Nama Item / Bahan'}
+                {getItemLabel()}
               </span>
               {target.categoryOrStatus && (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -74,6 +87,10 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
                     ? target.categoryOrStatus.toLowerCase().includes('paid')
                       ? 'bg-emerald-100 text-emerald-700'
                       : 'bg-amber-100 text-amber-700'
+                    : isCashflow
+                    ? target.categoryOrStatus === 'Masuk'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-rose-100 text-rose-700'
                     : 'bg-indigo-100 text-indigo-700'
                 }`}>
                   {target.categoryOrStatus}
@@ -86,16 +103,34 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 text-xs">
-              <div>
-                <span className="text-slate-400 block text-[10px]">Jumlah</span>
-                <span className="font-semibold text-slate-700">
-                  {target.qty !== undefined ? `${target.qty} ${isOrder ? 'Cup' : 'Item/Pcs'}` : '-'}
-                </span>
-              </div>
+              {target.qty !== undefined ? (
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Jumlah</span>
+                  <span className="font-semibold text-slate-700">
+                    {`${target.qty} ${isOrder ? 'Cup' : 'Item/Pcs'}`}
+                  </span>
+                </div>
+              ) : isCashflow ? (
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Tipe Kas</span>
+                  <span className="font-semibold text-slate-700">
+                    {target.categoryOrStatus || 'Arus Kas'}
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Kategori</span>
+                  <span className="font-semibold text-slate-700">
+                    {target.categoryOrStatus || '-'}
+                  </span>
+                </div>
+              )}
               {target.amount !== undefined && (
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Total Nominal</span>
-                  <span className="font-bold text-rose-600">
+                  <span className="text-slate-400 block text-[10px]">
+                    {isCashflow ? (target.categoryOrStatus === 'Masuk' ? 'Uang Masuk' : 'Uang Keluar') : 'Total Nominal'}
+                  </span>
+                  <span className={`font-bold ${isCashflow && target.categoryOrStatus === 'Masuk' ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {formatRupiah(target.amount)}
                   </span>
                 </div>
@@ -113,7 +148,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <div className="mt-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-2.5 text-amber-900">
             <span className="text-base select-none">⚠️</span>
             <p className="text-[11px] leading-relaxed">
-              <strong>Tindakan ini tidak dapat dibatalkan.</strong> Data ini akan langsung dihapus dari database Supabase secara permanen.
+              <strong>Tindakan ini tidak dapat dibatalkan.</strong> Data ini akan langsung dihapus dari database Supabase secara permanen{isCashflow ? ' dan saldo kas berjalan akan dihitung ulang otomatis.' : '.'}
             </p>
           </div>
         </div>
@@ -146,3 +181,4 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     </div>
   );
 };
+

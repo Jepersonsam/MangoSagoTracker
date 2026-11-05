@@ -17,6 +17,7 @@ import {
   updateExpenseSisaInSupabase,
   updateExpenseInSupabase,
   deleteExpenseInSupabase,
+  deleteCashflowInSupabase,
   insertAuditLogInSupabase,
   clearAuditLogsInSupabase,
   subscribeToSupabaseChanges,
@@ -386,7 +387,7 @@ export default function App() {
 
     const sbConfig = getSupabaseConfig();
     if (sbConfig.isConfigured) {
-      const success = await deleteOrderInSupabase(orderId);
+      const success = await deleteOrderInSupabase(orderId, target);
       if (success) {
         showToast(`Pesanan ${target?.namaPemesan || ''} berhasil dihapus dari Supabase!`);
         setTimeout(() => loadData(true), 500);
@@ -548,7 +549,7 @@ export default function App() {
 
     const sbConfig = getSupabaseConfig();
     if (sbConfig.isConfigured) {
-      const success = await deleteExpenseInSupabase(expenseId);
+      const success = await deleteExpenseInSupabase(expenseId, target);
       if (success) {
         showToast(`Pengeluaran ${target?.item || ''} berhasil dihapus dari Supabase!`);
         setTimeout(() => loadData(true), 500);
@@ -575,6 +576,55 @@ export default function App() {
     });
   };
 
+  // PROMPT DELETE CASHFLOW (Shows Warning Modal)
+  const handleRequestDeleteCashflow = (cfId: string) => {
+    const target = cashflow.find((c) => c.id === cfId);
+    if (!target) return;
+    setDeleteTarget({
+      type: 'cashflow',
+      id: target.id,
+      title: target.transaksi || 'Catatan Kas',
+      amount: target.debit > 0 ? target.debit : target.kredit,
+      categoryOrStatus: target.tipe,
+      date: target.tanggal,
+    });
+  };
+
+  // DELETE CASHFLOW
+  const handleDeleteCashflow = async (cashflowId: string) => {
+    const target = cashflow.find((c) => c.id === cashflowId);
+    setCashflow((prev) => {
+      const updated = prev.filter((c) => c.id !== cashflowId);
+      let runBal = 0;
+      const rebalanced = updated.map((item) => {
+        runBal += (item.debit - item.kredit);
+        return { ...item, balance: runBal };
+      });
+      setMetrics(calculateMetrics(orders, expenses, rebalanced));
+      return rebalanced;
+    });
+
+    logAudit(
+      'UPDATE_SETTINGS',
+      'Sistem',
+      `Menghapus catatan buku kas: ${target?.transaksi || cashflowId}`,
+      `ID: ${cashflowId}`
+    );
+
+    const sbConfig = getSupabaseConfig();
+    if (sbConfig.isConfigured) {
+      const success = await deleteCashflowInSupabase(cashflowId);
+      if (success) {
+        showToast(`Catatan kas berhasil dihapus dari Supabase!`);
+        setTimeout(() => loadData(true), 500);
+      } else {
+        showToast(`Gagal menghapus catatan kas di Supabase.`);
+      }
+    } else {
+      showToast(`Catatan kas berhasil dihapus.`);
+    }
+  };
+
   // CONFIRM DELETE HANDLER (Called when user clicks "Ya, Hapus Permanen" on warning modal)
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -582,8 +632,10 @@ export default function App() {
     try {
       if (deleteTarget.type === 'order') {
         await handleDeleteOrder(deleteTarget.id);
-      } else {
+      } else if (deleteTarget.type === 'expense') {
         await handleDeleteExpense(deleteTarget.id);
+      } else if (deleteTarget.type === 'cashflow') {
+        await handleDeleteCashflow(deleteTarget.id);
       }
       setDeleteTarget(null);
     } catch (err) {
@@ -748,7 +800,10 @@ export default function App() {
           )}
 
           {activeTab === 'cashflow' && (
-            <CashflowTab cashflows={cashflow} />
+            <CashflowTab
+              cashflows={cashflow}
+              onDeleteCashflow={handleRequestDeleteCashflow}
+            />
           )}
         </div>
       </main>

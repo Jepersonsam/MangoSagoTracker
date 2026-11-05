@@ -187,7 +187,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               title="Input 1 item belanja saja"
             >
               <Plus className="w-3.5 h-3.5 text-slate-500" />
-              <span>+1 Item</span>
+              <span>1 Item</span>
             </button>
 
             <button

@@ -190,9 +190,21 @@ export async function updateOrderInSupabase(order: OrderItem): Promise<boolean> 
   return true;
 }
 
-export async function deleteOrderInSupabase(orderId: string): Promise<boolean> {
+export async function deleteOrderInSupabase(orderId: string, orderDetail?: Partial<OrderItem>): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return false;
+
+  // Clean up associated cashflow if matching
+  if (orderDetail?.namaPemesan) {
+    try {
+      await supabase
+        .from('cashflows')
+        .delete()
+        .ilike('transaksi', `%${orderDetail.namaPemesan}%`);
+    } catch (cfErr) {
+      console.warn('Could not auto-delete order cashflow:', cfErr);
+    }
+  }
 
   const { error } = await supabase
     .from('orders')
@@ -364,9 +376,21 @@ export async function updateExpenseInSupabase(expense: ExpenseItem): Promise<boo
   return true;
 }
 
-export async function deleteExpenseInSupabase(expenseId: string): Promise<boolean> {
+export async function deleteExpenseInSupabase(expenseId: string, expenseDetail?: Partial<ExpenseItem>): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return false;
+
+  // Clean up associated cashflow if matching
+  if (expenseDetail?.item) {
+    try {
+      await supabase
+        .from('cashflows')
+        .delete()
+        .ilike('transaksi', `%${expenseDetail.item}%`);
+    } catch (cfErr) {
+      console.warn('Could not auto-delete expense cashflow:', cfErr);
+    }
+  }
 
   const { error } = await supabase
     .from('expenses')
@@ -412,6 +436,22 @@ export async function fetchCashflowFromSupabase(): Promise<CashflowItem[]> {
       tipe: (row.tipe || (debit > 0 ? 'Masuk' : 'Keluar')) as 'Masuk' | 'Keluar',
     };
   });
+}
+
+export async function deleteCashflowInSupabase(cashflowId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('cashflows')
+    .delete()
+    .eq('id', cashflowId);
+
+  if (error) {
+    console.error('Supabase delete cashflow error:', error);
+    return false;
+  }
+  return true;
 }
 
 // ------------------- Audit Logs -------------------
