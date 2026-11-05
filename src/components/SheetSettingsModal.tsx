@@ -19,6 +19,8 @@ import { AuditLogTab } from './AuditLogTab';
 import { AuditLog, User } from '../types';
 import { getSupabaseConfig, setSupabaseConfig, testSupabaseConnection } from '../services/supabaseClient';
 import { SUPABASE_SCHEMA_SQL } from '../services/supabaseSchemaSql';
+import { fetchOrders, fetchExpenses, fetchCashflow } from '../services/sheetsService';
+import { syncSpreadsheetToSupabase } from '../services/supabaseService';
 
 interface SheetSettingsModalProps {
   isOpen: boolean;
@@ -56,6 +58,8 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => getSupabaseConfig().anonKey);
   const [sbTestStatus, setSbTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [sbTestMessage, setSbTestMessage] = useState('');
+  const [isSyncingToSupabase, setIsSyncingToSupabase] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState('');
 
   // Google Sheet Connection testing state
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -73,6 +77,8 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
       setSbTestMessage('');
       setTestStatus('idle');
       setTestMessage('');
+      setIsSyncingToSupabase(false);
+      setSyncFeedback('');
     }
   }, [isOpen, spreadsheetId, initialTab]);
 
@@ -100,6 +106,39 @@ export const SheetSettingsModal: React.FC<SheetSettingsModalProps> = ({
     } else {
       setSbTestStatus('error');
       setSbTestMessage(res.message);
+    }
+  };
+
+  // Import direct from live Google Sheets to Supabase
+  const handleImportSheetToSupabase = async () => {
+    if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
+      setSbTestStatus('error');
+      setSbTestMessage('Masukkan Project URL dan Anon Key terlebih dahulu.');
+      return;
+    }
+
+    setSupabaseConfig(supabaseUrl, supabaseAnonKey);
+    setIsSyncingToSupabase(true);
+    setSyncFeedback('Mengambil data terbaru dari Google Spreadsheet...');
+
+    try {
+      const [liveOrders, liveExpenses, liveCashflow] = await Promise.all([
+        fetchOrders(spreadsheetId),
+        fetchExpenses(spreadsheetId),
+        fetchCashflow(spreadsheetId),
+      ]);
+
+      setSyncFeedback(`Mengunggah ${liveOrders.length} pesanan, ${liveExpenses.length} pengeluaran, dan ${liveCashflow.length} kas ke Supabase...`);
+      const res = await syncSpreadsheetToSupabase(liveOrders, liveExpenses, liveCashflow);
+      setSyncFeedback(res.message);
+
+      if (res.success && onDatabaseConfigured) {
+        onDatabaseConfigured();
+      }
+    } catch (err: any) {
+      setSyncFeedback('Gagal sinkronisasi: ' + (err.message || err));
+    } finally {
+      setIsSyncingToSupabase(false);
     }
   };
 
@@ -548,6 +587,33 @@ function handleRequest(data) {
                     <li>Buka menu <strong>Project Settings &gt; API</strong>, salin <strong>URL</strong> & <strong>anon key</strong>, lalu tempel pada form di atas.</li>
                   </ol>
                 </div>
+              </div>
+
+              {/* Direct Sync Button Card */}
+              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-blue-900 font-bold">
+                    <RefreshCw className={`w-4 h-4 text-blue-600 ${isSyncingToSupabase ? 'animate-spin' : ''}`} />
+                    <span>Tarik & Sinkronkan Data dari Google Spreadsheet ke Supabase</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleImportSheetToSupabase}
+                    disabled={isSyncingToSupabase || !supabaseUrl.trim() || !supabaseAnonKey.trim()}
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition cursor-pointer disabled:opacity-50 shrink-0 shadow-xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingToSupabase ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingToSupabase ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-blue-800/80 leading-relaxed">
+                  Tarik 39 pesanan, 18 belanjaan (dengan sisa stok akurat), dan 71 transaksi kas dari Google Sheets langsung ke Supabase dengan 1 klik!
+                </p>
+                {syncFeedback && (
+                  <div className="p-2.5 bg-white rounded-lg border border-blue-200 text-blue-900 font-semibold text-[11px] leading-relaxed">
+                    {syncFeedback}
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

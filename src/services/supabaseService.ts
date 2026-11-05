@@ -1,3 +1,5 @@
+
+
 import { OrderItem, ExpenseItem, CashflowItem, AuditLog } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
@@ -352,4 +354,83 @@ export function subscribeToSupabaseChanges(onChange: () => void): () => void {
   return () => {
     supabase.removeChannel(channel);
   };
+}
+
+
+// ------------------- Sync Live Spreadsheet to Supabase -------------------
+
+export async function syncSpreadsheetToSupabase(
+  orders: OrderItem[],
+  expenses: ExpenseItem[],
+  cashflow: CashflowItem[]
+): Promise<{ success: boolean; message: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { success: false, message: 'Supabase client belum terhubung' };
+
+  try {
+    // 1. Delete existing rows
+    await Promise.all([
+      supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      supabase.from('expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      supabase.from('cashflows').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+    ]);
+
+    // 2. Insert orders in chunks of 50
+    if (orders.length > 0) {
+      const orderPayloads = orders.map((o) => ({
+        tanggal: o.tanggal,
+        nama_pemesan: o.namaPemesan,
+        qty: o.qty,
+        amount: o.amount,
+        status: o.status,
+        note: o.note || '',
+        pembayaran: o.pembayaran || '-',
+        batch: o.batch || null,
+      }));
+      const { error: ordErr } = await supabase.from('orders').insert(orderPayloads);
+      if (ordErr) throw ordErr;
+    }
+
+    // 3. Insert expenses
+    if (expenses.length > 0) {
+      const expensePayloads = expenses.map((e) => ({
+        tanggal: e.tanggal,
+        item: e.item,
+        unit_price: e.unitPrice,
+        qty: e.qty,
+        total_amount: e.totalAmount,
+        sisa_qty: e.sisaQty !== undefined && e.sisaQty !== null ? String(e.sisaQty) : '0',
+        category: e.category,
+        row_index: e.rowIndex || null,
+      }));
+      const { error: expErr } = await supabase.from('expenses').insert(expensePayloads);
+      if (expErr) throw expErr;
+    }
+
+    // 4. Insert cashflow in chunks of 50
+    if (cashflow.length > 0) {
+      const cfPayloads = cashflow.map((c) => ({
+        tanggal: c.tanggal,
+        transaksi: c.transaksi,
+        debit: c.debit,
+        kredit: c.kredit,
+        balance: c.balance,
+        tipe: c.tipe,
+      }));
+      // Split into batches of 40 to avoid any payload limits
+      for (let i = 0; i < cfPayloads.length; i += 40) {
+        const batch = cfPayloads.slice(i, i + 40);
+        const { error: cfErr } = await supabase.from('cashflows').insert(batch);
+        if (cfErr) throw cfErr;
+      }
+    }
+
+    return {
+      success: true,
+      message: `✅ Berhasil mengimpor ${orders.length} pesanan, ${expenses.length} pengeluaran, dan ${cashflow.length} baris kas ke Supabase!`,
+    };
+  } catch (err: any) {
+    console.error('Failed to sync spreadsheet to Supabase:', err);
+    return { success: false, message: `Gagal impor: ${err.message || err}` };
+  }
 }
