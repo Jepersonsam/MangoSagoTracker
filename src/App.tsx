@@ -33,6 +33,7 @@ import { EditOrderModal } from './components/EditOrderModal';
 import { NewExpenseModal } from './components/NewExpenseModal';
 import { EditExpenseModal } from './components/EditExpenseModal';
 import { SheetSettingsModal } from './components/SheetSettingsModal';
+import { ConfirmDeleteModal, DeleteConfirmTarget } from './components/ConfirmDeleteModal';
 import { LoginPage } from './components/LoginPage';
 import { ShoppingBag, ShoppingCart, Landmark } from 'lucide-react';
 
@@ -75,6 +76,10 @@ export default function App() {
   const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Delete Confirmation Modal State
+  const [deleteTarget, setDeleteTarget] = useState<DeleteConfirmTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -348,6 +353,21 @@ export default function App() {
     }
   };
 
+  // PROMPT DELETE ORDER (Shows Warning Modal)
+  const handleRequestDeleteOrder = (orderId: string) => {
+    const target = orders.find((o) => o.id === orderId);
+    if (!target) return;
+    setDeleteTarget({
+      type: 'order',
+      id: target.id,
+      title: target.namaPemesan || 'Pelanggan',
+      amount: target.amount,
+      qty: target.qty,
+      categoryOrStatus: target.status,
+      date: target.tanggal,
+    });
+  };
+
   // DELETE ORDER
   const handleDeleteOrder = async (orderId: string) => {
     const target = orders.find((o) => o.id === orderId);
@@ -540,6 +560,40 @@ export default function App() {
     }
   };
 
+  // PROMPT DELETE EXPENSE (Shows Warning Modal)
+  const handleRequestDeleteExpense = (expenseId: string) => {
+    const target = expenses.find((e) => e.id === expenseId);
+    if (!target) return;
+    setDeleteTarget({
+      type: 'expense',
+      id: target.id,
+      title: target.item || 'Item Pengeluaran',
+      amount: target.totalAmount,
+      qty: typeof target.qty === 'number' ? target.qty : undefined,
+      categoryOrStatus: target.category,
+      date: target.tanggal,
+    });
+  };
+
+  // CONFIRM DELETE HANDLER (Called when user clicks "Ya, Hapus Permanen" on warning modal)
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      if (deleteTarget.type === 'order') {
+        await handleDeleteOrder(deleteTarget.id);
+      } else {
+        await handleDeleteExpense(deleteTarget.id);
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Error during delete:', err);
+      showToast('Gagal menghapus data.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // ===================== AUDIT LOGS =====================
   const handleClearLogs = async () => {
     const isSam =
@@ -673,7 +727,7 @@ export default function App() {
                 setEditingOrder(ord);
                 setIsEditOrderModalOpen(true);
               }}
-              onDeleteOrder={handleDeleteOrder}
+              onDeleteOrder={handleRequestDeleteOrder}
             />
           )}
 
@@ -689,7 +743,7 @@ export default function App() {
                 setEditingExpense(exp);
                 setIsEditExpenseModalOpen(true);
               }}
-              onDeleteExpense={handleDeleteExpense}
+              onDeleteExpense={handleRequestDeleteExpense}
             />
           )}
 
@@ -731,7 +785,7 @@ export default function App() {
         }}
         order={editingOrder}
         onUpdateOrder={handleEditOrder}
-        onDeleteOrder={handleDeleteOrder}
+        onDeleteOrder={handleRequestDeleteOrder}
       />
 
       <NewExpenseModal
@@ -750,7 +804,7 @@ export default function App() {
         }}
         expense={editingExpense}
         onUpdateExpense={handleEditExpense}
-        onDeleteExpense={handleDeleteExpense}
+        onDeleteExpense={handleRequestDeleteExpense}
       />
 
       <SheetSettingsModal
@@ -763,6 +817,15 @@ export default function App() {
           setIsSupabaseActive(getSupabaseConfig().isConfigured);
           loadData(false);
         }}
+      />
+
+      {/* Delete Confirmation Warning Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        target={deleteTarget}
+        isLoading={isDeleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
