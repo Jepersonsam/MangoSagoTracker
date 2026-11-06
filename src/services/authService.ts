@@ -62,8 +62,17 @@ const STORAGE_REMEMBER_KEY = 'mango_remember_session';
 const STORAGE_LAST_ACTIVITY_KEY = 'mango_last_activity_time';
 const STORAGE_EXPIRED_NOTICE_KEY = 'mango_session_expired_notice';
 
-// Batas inaktivitas: 2 Jam (2 * 60 * 60 * 1000 milidetik = 7.200.000 ms)
-export const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+// Batas inaktivitas
+export const INACTIVITY_TIMEOUT_MS = 1 * 60 * 60 * 1000;
+
+export function getInactivityTimeoutLabel(): string {
+  const hours = INACTIVITY_TIMEOUT_MS / (60 * 60 * 1000);
+  if (hours >= 1) {
+    return `${hours} jam`;
+  }
+  const minutes = Math.round(INACTIVITY_TIMEOUT_MS / (60 * 1000));
+  return `${minutes} menit`;
+}
 
 export function updateLastActivity(): void {
   try {

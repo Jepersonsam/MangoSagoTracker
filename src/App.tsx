@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { calculateMetrics, formatRupiah } from './services/sheetsService';
-import { getCurrentUser, logoutUser, updateLastActivity, isSessionExpired, checkAndClearExpiredNotice } from './services/authService';
+import { getCurrentUser, logoutUser, updateLastActivity, isSessionExpired, checkAndClearExpiredNotice, getInactivityTimeoutLabel } from './services/authService';
 import { getAuditLogs, recordAuditLog, clearAuditLogs } from './services/auditService';
 import { getSupabaseConfig } from './services/supabaseClient';
 import {
@@ -109,7 +109,7 @@ export default function App() {
   // Check session expired notice on initial load
   useEffect(() => {
     if (checkAndClearExpiredNotice()) {
-      showToast('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+      showToast(`Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama ${getInactivityTimeoutLabel()}.`);
     }
   }, []);
 
@@ -302,6 +302,7 @@ export default function App() {
   const handleLogout = useCallback(
     (customMessage?: string) => {
       if (currentUser) {
+        const timeoutLabel = getInactivityTimeoutLabel();
         const isAuto = typeof customMessage === 'string' && customMessage.includes('otomatis');
         const newLog = recordAuditLog({
           userName: currentUser.name,
@@ -309,10 +310,10 @@ export default function App() {
           action: 'LOGOUT',
           category: 'Autentikasi',
           description: isAuto
-            ? `Admin ${currentUser.name} otomatis keluar (inaktivitas 2 jam)`
+            ? `Admin ${currentUser.name} otomatis keluar (inaktivitas ${timeoutLabel})`
             : `Admin ${currentUser.name} keluar dari sistem (logout)`,
           details: isAuto
-            ? 'Sesi ditutup otomatis setelah 2 jam tidak ada aktivitas'
+            ? `Sesi ditutup otomatis setelah ${timeoutLabel} tidak ada aktivitas`
             : 'Sesi ditutup dengan aman',
         });
         setAuditLogs((prev) => [newLog, ...prev]);
@@ -328,7 +329,7 @@ export default function App() {
     [currentUser]
   );
 
-  // Auto-logout after 2 hours of inactivity
+  // Auto-logout after inactivity period
   useEffect(() => {
     if (!currentUser) return;
 
@@ -353,7 +354,7 @@ export default function App() {
     // Check inactivity every 30 seconds
     const inactivityInterval = setInterval(() => {
       if (isSessionExpired()) {
-        handleLogout('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+        handleLogout(`Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama ${getInactivityTimeoutLabel()}.`);
       }
     }, 30000);
 
@@ -361,7 +362,7 @@ export default function App() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         if (isSessionExpired()) {
-          handleLogout('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+          handleLogout(`Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama ${getInactivityTimeoutLabel()}.`);
         } else {
           recordUserActivity();
         }
