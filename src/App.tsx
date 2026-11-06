@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { calculateMetrics, formatRupiah } from './services/sheetsService';
-import { getCurrentUser, logoutUser } from './services/authService';
+import { getCurrentUser, logoutUser, updateLastActivity, isSessionExpired, checkAndClearExpiredNotice } from './services/authService';
 import { getAuditLogs, recordAuditLog, clearAuditLogs } from './services/auditService';
 import { getSupabaseConfig } from './services/supabaseClient';
 import {
@@ -105,6 +105,13 @@ export default function App() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Check session expired notice on initial load
+  useEffect(() => {
+    if (checkAndClearExpiredNotice()) {
+      showToast('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+    }
+  }, []);
 
   // Helper to record an audit action
   const logAudit = async (
@@ -292,26 +299,87 @@ export default function App() {
   };
 
   // Handle Logout
-  const handleLogout = () => {
-    if (currentUser) {
-      const newLog = recordAuditLog({
-        userName: currentUser.name,
-        userRole: currentUser.role,
-        action: 'LOGOUT',
-        category: 'Autentikasi',
-        description: `Admin ${currentUser.name} keluar dari sistem (logout)`,
-        details: 'Sesi ditutup dengan aman',
-      });
-      setAuditLogs((prev) => [newLog, ...prev]);
+  const handleLogout = useCallback(
+    (customMessage?: string) => {
+      if (currentUser) {
+        const isAuto = typeof customMessage === 'string' && customMessage.includes('otomatis');
+        const newLog = recordAuditLog({
+          userName: currentUser.name,
+          userRole: currentUser.role,
+          action: 'LOGOUT',
+          category: 'Autentikasi',
+          description: isAuto
+            ? `Admin ${currentUser.name} otomatis keluar (inaktivitas 2 jam)`
+            : `Admin ${currentUser.name} keluar dari sistem (logout)`,
+          details: isAuto
+            ? 'Sesi ditutup otomatis setelah 2 jam tidak ada aktivitas'
+            : 'Sesi ditutup dengan aman',
+        });
+        setAuditLogs((prev) => [newLog, ...prev]);
 
-      if (getSupabaseConfig().isConfigured) {
-        insertAuditLogInSupabase(newLog).catch(console.error);
+        if (getSupabaseConfig().isConfigured) {
+          insertAuditLogInSupabase(newLog).catch(console.error);
+        }
       }
-    }
-    logoutUser();
-    setCurrentUser(null);
-    showToast('Anda telah berhasil keluar (logout).');
-  };
+      logoutUser();
+      setCurrentUser(null);
+      showToast(typeof customMessage === 'string' ? customMessage : 'Anda telah berhasil keluar (logout).');
+    },
+    [currentUser]
+  );
+
+  // Auto-logout after 2 hours of inactivity
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Refresh last activity time on mount or login
+    updateLastActivity();
+    let lastThrottledTime = Date.now();
+
+    // Throttle user activity writes to localStorage (once every 15 seconds)
+    const recordUserActivity = () => {
+      const now = Date.now();
+      if (now - lastThrottledTime > 15000) {
+        lastThrottledTime = now;
+        updateLastActivity();
+      }
+    };
+
+    const userEvents = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    userEvents.forEach((ev) => {
+      window.addEventListener(ev, recordUserActivity, { passive: true });
+    });
+
+    // Check inactivity every 30 seconds
+    const inactivityInterval = setInterval(() => {
+      if (isSessionExpired()) {
+        handleLogout('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+      }
+    }, 30000);
+
+    // Immediate check when tab becomes visible or receives focus
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        if (isSessionExpired()) {
+          handleLogout('Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama 2 jam.');
+        } else {
+          recordUserActivity();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      userEvents.forEach((ev) => {
+        window.removeEventListener(ev, recordUserActivity);
+      });
+      clearInterval(inactivityInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [currentUser, handleLogout]);
 
   // ===================== CRUD ORDERS =====================
 

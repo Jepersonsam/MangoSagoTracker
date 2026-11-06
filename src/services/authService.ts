@@ -59,6 +59,43 @@ export const AVAILABLE_PROFILES: User[] = [
 const STORAGE_USERS_KEY = 'mango_auth_accounts_v2';
 const STORAGE_CURRENT_USER_KEY = 'mango_current_user';
 const STORAGE_REMEMBER_KEY = 'mango_remember_session';
+const STORAGE_LAST_ACTIVITY_KEY = 'mango_last_activity_time';
+const STORAGE_EXPIRED_NOTICE_KEY = 'mango_session_expired_notice';
+
+// Batas inaktivitas: 2 Jam (2 * 60 * 60 * 1000 milidetik = 7.200.000 ms)
+export const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+
+export function updateLastActivity(): void {
+  try {
+    localStorage.setItem(STORAGE_LAST_ACTIVITY_KEY, String(Date.now()));
+  } catch {}
+}
+
+export function getLastActivity(): number {
+  try {
+    const raw = localStorage.getItem(STORAGE_LAST_ACTIVITY_KEY);
+    return raw ? parseInt(raw, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function isSessionExpired(): boolean {
+  const last = getLastActivity();
+  if (!last) return false;
+  return Date.now() - last > INACTIVITY_TIMEOUT_MS;
+}
+
+export function checkAndClearExpiredNotice(): boolean {
+  try {
+    const notice = sessionStorage.getItem(STORAGE_EXPIRED_NOTICE_KEY);
+    if (notice) {
+      sessionStorage.removeItem(STORAGE_EXPIRED_NOTICE_KEY);
+      return true;
+    }
+  } catch {}
+  return false;
+}
 
 // Hapus akun lama (Budi / Siti / v1) secara otomatis jika masih tersimpan di browser
 function cleanupOldAccounts() {
@@ -103,6 +140,18 @@ function getStoredAccounts(): StoredAccount[] {
 
 export function getCurrentUser(): User | null {
   try {
+    const hasActiveSession = Boolean(
+      localStorage.getItem(STORAGE_CURRENT_USER_KEY) ||
+      sessionStorage.getItem(STORAGE_CURRENT_USER_KEY)
+    );
+
+    // Jika ada sesi yang sudah melebihi 2 jam tanpa aktivitas, otomatis logout
+    if (hasActiveSession && isSessionExpired()) {
+      sessionStorage.setItem(STORAGE_EXPIRED_NOTICE_KEY, 'true');
+      logoutUser();
+      return null;
+    }
+
     const savedLocal = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
     if (savedLocal) return JSON.parse(savedLocal);
 
@@ -149,6 +198,11 @@ export async function loginUser(
   }
 
   const { password: _, ...userSafe } = found;
+
+  updateLastActivity();
+  try {
+    sessionStorage.removeItem(STORAGE_EXPIRED_NOTICE_KEY);
+  } catch {}
 
   if (rememberMe) {
     localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(userSafe));
@@ -211,6 +265,7 @@ export async function registerUser(
 export function logoutUser(): void {
   localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
   sessionStorage.removeItem(STORAGE_CURRENT_USER_KEY);
+  localStorage.removeItem(STORAGE_LAST_ACTIVITY_KEY);
 }
 
 export function getDemoAccounts() {
