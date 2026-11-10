@@ -21,9 +21,17 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | ExpenseCategory>('All');
+  const [stockFilter, setStockFilter] = useState<'All' | 'sisa' | 'habis'>('All');
   const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+
+  const getSisaNum = (sisaQty?: string | number): number => {
+    if (typeof sisaQty === 'number') return sisaQty;
+    if (!sisaQty) return 0;
+    const parsed = parseInt(String(sisaQty).trim(), 10);
+    return isNaN(parsed) ? 0 : parsed;
+  };
 
   const handleStartEdit = (exp: ExpenseItem) => {
     setEditingId(exp.id);
@@ -143,6 +151,25 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
     );
   };
 
+  const stockCounts = useMemo(() => {
+    let sisa = 0;
+    let habis = 0;
+    const baseList = expenses.filter((exp) => {
+      const matchesSearch =
+        exp.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'All' || exp.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+
+    baseList.forEach((e) => {
+      const num = getSisaNum(e.sisaQty);
+      if (num > 0) sisa++;
+      else habis++;
+    });
+    return { all: baseList.length, sisa, habis };
+  }, [expenses, searchTerm, categoryFilter]);
+
   const filteredExpenses = useMemo(() => {
     const list = expenses.filter((exp) => {
       const matchesSearch =
@@ -150,7 +177,15 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'All' || exp.category === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      const numSisa = getSisaNum(exp.sisaQty);
+      let matchesStock = true;
+      if (stockFilter === 'sisa') {
+        matchesStock = numSisa > 0;
+      } else if (stockFilter === 'habis') {
+        matchesStock = numSisa <= 0;
+      }
+
+      return matchesSearch && matchesCategory && matchesStock;
     });
 
     return [...list].sort((a, b) => {
@@ -158,7 +193,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
       const timeB = parseDateString(b.tanggal)?.getTime() || 0;
       return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
     });
-  }, [expenses, searchTerm, categoryFilter, dateSortOrder]);
+  }, [expenses, searchTerm, categoryFilter, stockFilter, dateSortOrder]);
 
   const totalFilteredAmount = filteredExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
@@ -199,6 +234,8 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
+
+  const hasActiveFilter = searchTerm !== '' || categoryFilter !== 'All' || stockFilter !== 'All';
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden w-full max-w-full min-w-0">
@@ -247,84 +284,173 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cari item (cth: Mangga, Cup, Susu)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
-            />
+        <div className="mt-3.5 space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari item (cth: Mangga, Cup, Susu)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500 shrink-0">Kategori:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value as any)}
+                className="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden cursor-pointer text-slate-800 font-medium"
+              >
+                <option value="All">Semua Kategori</option>
+                <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Sagu)</option>
+                <option value="Kemasan">Kemasan (Cup, Thinwall, Stiker)</option>
+                <option value="Operasional">Operasional (Gas, Air, dll.)</option>
+                <option value="Belanja">Belanja (Belanja Umum / Perlengkapan)</option>
+                <option value="Others">Others (Lain-lain / Biaya Tambahan)</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500 shrink-0">Kategori:</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as any)}
-              className="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden cursor-pointer text-slate-800 font-medium"
+          {/* Filter Status Sisa Qty (Habis vs Ada Sisa) & Sort */}
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+              <span className="text-xs font-semibold text-slate-500 mr-1">Status Qty:</span>
+
+              <button
+                type="button"
+                onClick={() => setStockFilter('All')}
+                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer font-semibold ${
+                  stockFilter === 'All'
+                    ? 'bg-slate-800 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                Semua ({stockCounts.all})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStockFilter('sisa')}
+                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 font-semibold ${
+                  stockFilter === 'sisa'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${stockFilter === 'sisa' ? 'bg-white' : 'bg-emerald-500'}`} />
+                <span>Ada Sisa ({stockCounts.sisa})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStockFilter('habis')}
+                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 font-semibold ${
+                  stockFilter === 'habis'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${stockFilter === 'habis' ? 'bg-white' : 'bg-rose-500'}`} />
+                <span>Habis / 0 ({stockCounts.habis})</span>
+              </button>
+            </div>
+
+            {/* Sort Date Toggle */}
+            <button
+              type="button"
+              onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+              title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+              className="py-1 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs ml-auto"
             >
-              <option value="All">Semua Kategori</option>
-              <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Sagu)</option>
-              <option value="Kemasan">Kemasan (Cup, Thinwall, Stiker)</option>
-              <option value="Operasional">Operasional (Gas, Air, dll.)</option>
-              <option value="Belanja">Belanja (Belanja Umum / Perlengkapan)</option>
-              <option value="Others">Others (Lain-lain / Biaya Tambahan)</option>
-            </select>
+              <ArrowUpDown className="w-3.5 h-3.5 text-rose-600" />
+              <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Total Summary & Sort */}
+        {/* Total Summary & Reset */}
         <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
           <div className="px-2.5 py-1 bg-rose-50 text-rose-800 rounded-md font-medium border border-rose-200/60 text-[11px] sm:text-xs">
             Total Pengeluaran: <span className="font-bold">{formatRupiah(totalFilteredAmount)}</span>
+            <span className="text-slate-500 font-normal ml-1">({filteredExpenses.length} item)</span>
           </div>
 
-          {/* Sort Date Toggle */}
-          <button
-            type="button"
-            onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
-            title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
-            className="py-1 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5 text-rose-600" />
-            <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
-          </button>
+          {(searchTerm !== '' || categoryFilter !== 'All' || stockFilter !== 'All') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setCategoryFilter('All');
+                setStockFilter('All');
+              }}
+              className="text-xs text-rose-600 hover:text-rose-700 font-semibold underline cursor-pointer"
+            >
+              Reset Filter
+            </button>
+          )}
         </div>
       </div>
 
       {/* --- A. TAMPILAN MOBILE CARD LIST (HP) --- */}
       <div className="sm:hidden p-3.5 space-y-2.5">
         {filteredExpenses.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-rose-300 shadow-2xs space-y-3">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-2xl shadow-inner">
-              🛒
+          hasActiveFilter ? (
+            <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 shadow-2xs space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl shadow-inner">
+                🔍
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">
+                Tidak Ada Item yang Cocok
+              </h4>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                Tidak ada data belanja yang memenuhi filter pencarian, kategori, atau status sisa qty saat ini.
+              </p>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setCategoryFilter('All');
+                    setStockFilter('All');
+                  }}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-xl transition cursor-pointer"
+                >
+                  Reset Semua Filter
+                </button>
+              </div>
             </div>
-            <h4 className="text-sm font-bold text-slate-800">
-              Belum Ada Data Pengeluaran
-            </h4>
-            <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-              Catat belanja bahan mangga, susu, cup, atau operasional sekarang.
-            </p>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => onOpenNewExpense('single')}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer"
-              >
-                + 1 Item
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenNewExpense('batch')}
-                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer"
-              >
-                Belanja Sekaligus (Multi)
-              </button>
+          ) : (
+            <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-rose-300 shadow-2xs space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-2xl shadow-inner">
+                🛒
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">
+                Belum Ada Data Pengeluaran
+              </h4>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                Catat belanja bahan mangga, susu, cup, atau operasional sekarang.
+              </p>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenNewExpense('single')}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer"
+                >
+                  + 1 Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenNewExpense('batch')}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  Belanja Sekaligus (Multi)
+                </button>
+              </div>
             </div>
-          </div>
+          )
         ) : (
           filteredExpenses.map((exp) => (
             <div
@@ -412,24 +538,44 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               <tr>
                 <td colSpan={8} className="py-12 text-center">
                   <div className="max-w-xs mx-auto space-y-2">
-                    <span className="text-3xl block">🛒</span>
-                    <p className="text-xs font-bold text-slate-700">Belum ada data belanja yang sesuai filter</p>
-                    <div className="flex items-center justify-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => onOpenNewExpense('single')}
-                        className="px-3 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"
-                      >
-                        + 1 Item
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOpenNewExpense('batch')}
-                        className="px-3 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs cursor-pointer"
-                      >
-                        Belanja Sekaligus (Multi)
-                      </button>
-                    </div>
+                    <span className="text-3xl block">{hasActiveFilter ? '🔍' : '🛒'}</span>
+                    <p className="text-xs font-bold text-slate-700">
+                      {hasActiveFilter
+                        ? 'Tidak ada data belanja yang memenuhi kriteria filter'
+                        : 'Belum ada data belanja yang tercatat'}
+                    </p>
+                    {hasActiveFilter ? (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchTerm('');
+                            setCategoryFilter('All');
+                            setStockFilter('All');
+                          }}
+                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition cursor-pointer"
+                        >
+                          Reset Semua Filter
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => onOpenNewExpense('single')}
+                          className="px-3 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"
+                        >
+                          + 1 Item
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOpenNewExpense('batch')}
+                          className="px-3 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs cursor-pointer"
+                        >
+                          Belanja Sekaligus (Multi)
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </td>
               </tr>
