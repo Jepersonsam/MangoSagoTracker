@@ -72,9 +72,14 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
           />
           <button
             type="button"
-            onClick={() => setEditValue('0')}
-            title="Set Habis (0)"
-            className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded cursor-pointer"
+            onClick={() => {
+              if (onUpdateSisaQty) {
+                onUpdateSisaQty(exp.id, '0');
+              }
+              setEditingId(null);
+            }}
+            title="Set langsung Habis (0)"
+            className="px-1.5 py-0.5 text-[9px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded cursor-pointer"
           >
             Habis (0)
           </button>
@@ -529,7 +534,31 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               <th className="py-3 px-4 text-right">Harga Satuan</th>
               <th className="py-3 px-4 text-center">Qty</th>
               <th className="py-3 px-4 text-right">Total Biaya</th>
-              <th className="py-3 px-4 text-center">Sisa Qty</th>
+              <th className="py-2.5 px-3 text-center">
+                <div className="inline-flex flex-col items-center justify-center gap-1 select-none">
+                  <div className="flex items-center gap-1 text-slate-800">
+                    <span className="font-bold text-xs">Sisa Qty</span>
+                    {stockFilter !== 'All' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    )}
+                  </div>
+                  <select
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value as any)}
+                    className={`text-[10px] normal-case tracking-normal font-bold py-0.5 px-2 rounded-lg border transition cursor-pointer shadow-2xs ${
+                      stockFilter === 'sisa'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-400'
+                        : stockFilter === 'habis'
+                        ? 'bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-400'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    <option value="All">Semua ({stockCounts.all})</option>
+                    <option value="sisa">Ada Sisa ({stockCounts.sisa})</option>
+                    <option value="habis">Habis / 0 ({stockCounts.habis})</option>
+                  </select>
+                </div>
+              </th>
               <th className="py-3 px-4 text-center">Aksi</th>
             </tr>
           </thead>
