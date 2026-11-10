@@ -888,7 +888,7 @@ export default function App() {
               }`}
             >
               <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span className="truncate">Belanja</span>
+              <span className="truncate">Pengeluaran</span>
               <span className={`text-[9px] sm:text-[11px] px-1 sm:px-2 py-0.2 sm:py-0.5 rounded-full shrink-0 ${
                 activeTab === 'expenses' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
               }`}>
