@@ -316,92 +316,29 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="mt-3.5 space-y-2.5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari item (cth: Mangga, Cup, Susu)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 shrink-0">Kategori:</span>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as any)}
-                className="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden cursor-pointer text-slate-800 font-medium"
-              >
-                <option value="All">Semua Kategori</option>
-                <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Sagu)</option>
-                <option value="Kemasan">Kemasan (Cup, Thinwall, Stiker)</option>
-                <option value="Operasional">Operasional (Gas, Air, dll.)</option>
-                <option value="Belanja">Belanja (Belanja Umum / Perlengkapan)</option>
-                <option value="Others">Others (Lain-lain / Biaya Tambahan)</option>
-              </select>
-            </div>
+        {/* Search & Sort Date */}
+        <div className="mt-3.5 flex items-center justify-between gap-2.5">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari item (cth: Mangga, Cup, Susu)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
+            />
           </div>
 
-          {/* Filter Status Sisa Qty (Habis vs Ada Sisa) & Sort */}
-          <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-slate-500 mr-1">Status Qty:</span>
-
-              <button
-                type="button"
-                onClick={() => setStockFilter('All')}
-                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer font-semibold ${
-                  stockFilter === 'All'
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                }`}
-              >
-                Semua ({stockCounts.all})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStockFilter('sisa')}
-                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 font-semibold ${
-                  stockFilter === 'sisa'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${stockFilter === 'sisa' ? 'bg-white' : 'bg-emerald-500'}`} />
-                <span>Ada Sisa ({stockCounts.sisa})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStockFilter('habis')}
-                className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 font-semibold ${
-                  stockFilter === 'habis'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${stockFilter === 'habis' ? 'bg-white' : 'bg-rose-500'}`} />
-                <span>Habis / 0 ({stockCounts.habis})</span>
-              </button>
-            </div>
-
-            {/* Sort Date Toggle */}
-            <button
-              type="button"
-              onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
-              title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
-              className="py-1 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs ml-auto"
-            >
-              <ArrowUpDown className="w-3.5 h-3.5 text-rose-600" />
-              <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
-            </button>
-          </div>
+          {/* Sort Date Toggle */}
+          <button
+            type="button"
+            onClick={() => setDateSortOrder(dateSortOrder === 'desc' ? 'asc' : 'desc')}
+            title={`Urutkan Tanggal: ${dateSortOrder === 'desc' ? 'Terbaru ke Terlama (DESC)' : 'Terlama ke Terbaru (ASC)'}`}
+            className="py-1.5 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 text-rose-600" />
+            <span>{dateSortOrder === 'desc' ? 'Tgl: DESC ↓' : 'Tgl: ASC ↑'}</span>
+          </button>
         </div>
 
         {/* Total Summary & Reset */}
