@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { CashflowItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
+import { exportToExcel } from '../services/excelService';
 import { parseDateString } from './OrdersTab';
 
 interface CashflowTabProps {
@@ -33,23 +34,20 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
   const totalAllKredit = cashflows.reduce((sum, cf) => sum + cf.kredit, 0);
   const latestBalance = totalAllDebit - totalAllKredit;
 
-  const handleExportCsv = () => {
+  const handleExportExcel = () => {
     const header = ['Tanggal', 'Transaksi', 'Debit (Masuk)', 'Kredit (Keluar)', 'Saldo (Balance)'];
     const rows = filtered.map((cf) => [
       cf.tanggal,
-      `"${cf.transaksi}"`,
+      cf.transaksi,
       cf.debit,
       cf.kredit,
       cf.balance,
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [header.join(','), ...rows.map((row) => row.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `buku_kas_cashflow_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(`buku_kas_cashflow_${new Date().toISOString().slice(0, 10)}`, {
+      sheetName: 'Buku Kas',
+      header,
+      rows,
+    });
   };
 
   return (
@@ -82,11 +80,12 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
             </button>
 
             <button
-              onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition cursor-pointer shadow-2xs"
+              title="Download data arus kas dalam format Microsoft Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export CSV</span>
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
             </button>
           </div>
         </div>

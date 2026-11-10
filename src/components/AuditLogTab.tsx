@@ -23,6 +23,7 @@ import {
   ArrowUp,
 } from 'lucide-react';
 import { AuditLog, User } from '../types';
+import { exportToExcel } from '../services/excelService';
 
 interface AuditLogTabProps {
   logs: AuditLog[];
@@ -70,27 +71,23 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
     });
   }, [logs, searchTerm, adminFilter, categoryFilter, dateSortOrder]);
 
-  const handleExportCsv = () => {
+  const handleExportExcel = () => {
     const header = ['ID', 'Waktu', 'Admin', 'Peran', 'Kategori', 'Aksi', 'Deskripsi', 'Detail'];
     const rows = filteredLogs.map((l) => [
       l.id,
-      `"${l.formattedDate}"`,
-      `"${l.userName}"`,
-      `"${l.userRole}"`,
-      `"${l.category}"`,
+      l.formattedDate,
+      l.userName,
+      l.userRole,
+      l.category,
       l.action,
-      `"${l.description.replace(/"/g, '""')}"`,
-      `"${(l.details || '').replace(/"/g, '""')}"`,
+      l.description,
+      l.details || '',
     ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [header.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `audit_log_mango_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(`audit_log_mango_${new Date().toISOString().slice(0, 10)}`, {
+      sheetName: 'Audit Log',
+      header,
+      rows,
+    });
   };
 
   const getActionBadge = (action: AuditLog['action'], category: AuditLog['category']) => {
@@ -193,11 +190,12 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ logs, onClearLogs, cur
 
             <button
               type="button"
-              onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition cursor-pointer"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg shadow-2xs transition cursor-pointer"
+              title="Download riwayat aktivitas dalam format Microsoft Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export CSV</span>
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
             </button>
 
             {isSam ? (

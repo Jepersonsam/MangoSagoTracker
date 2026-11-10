@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { OrderItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
+import { exportToExcel } from '../services/excelService';
 
 interface OrdersTabProps {
   orders: OrderItem[];
@@ -313,28 +314,24 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     });
   }, [displayMode, currentSlide, calSelectedDateStr, dailySummaries, orders, searchTerm, statusFilter, dateSortOrder]);
 
-  const handleExportCsv = () => {
+  const handleExportExcel = () => {
     const listToExport = displayMode === 'table' ? orders : activeOrdersForView;
     const header = ['Tanggal', 'Nama Pemesan', 'Qty', 'Amount', 'Status', 'Catatan', 'Pembayaran', 'Batch'];
     const rows = listToExport.map((o) => [
       o.tanggal,
-      `"${o.namaPemesan}"`,
+      o.namaPemesan,
       o.qty,
       o.amount,
       o.status,
-      `"${o.note}"`,
+      o.note || '',
       o.pembayaran,
       o.batch || '',
     ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [header.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `pesanan_penjualan_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(`pesanan_penjualan_${new Date().toISOString().slice(0, 10)}`, {
+      sheetName: 'Data Penjualan',
+      header,
+      rows,
+    });
   };
 
   const handlePrevMonth = () => {
@@ -410,11 +407,12 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
             <div className="hidden sm:flex items-center gap-1.5">
               <button
-                onClick={handleExportCsv}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition cursor-pointer"
+                onClick={handleExportExcel}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg shadow-2xs transition cursor-pointer"
+                title="Download data penjualan dalam format Microsoft Excel (.xlsx)"
               >
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline">Export</span>
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Export Excel</span>
               </button>
 
               <button

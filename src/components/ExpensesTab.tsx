@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { ExpenseItem, ExpenseCategory } from '../types';
 import { formatRupiah } from '../services/sheetsService';
+import { exportToExcel } from '../services/excelService';
 import { parseDateString } from './OrdersTab';
 
 interface ExpensesTabProps {
@@ -230,25 +231,22 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 
   const totalFilteredAmount = filteredExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
-  const handleExportCsv = () => {
+  const handleExportExcel = () => {
     const header = ['Tanggal', 'Item', 'Harga Satuan', 'Qty', 'Total Biaya', 'Kategori', 'Sisa Qty'];
     const rows = filteredExpenses.map((e) => [
       e.tanggal,
-      `"${e.item}"`,
+      e.item,
       e.unitPrice,
       e.qty,
       e.totalAmount,
-      `"${e.category}"`,
-      `"${e.sisaQty}"`,
+      e.category,
+      e.sisaQty ?? '0',
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [header.join(','), ...rows.map((row) => row.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `pengeluaran_belanja_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(`pengeluaran_belanja_${new Date().toISOString().slice(0, 10)}`, {
+      sheetName: 'Pengeluaran Belanja',
+      header,
+      rows,
+    });
   };
 
   const getCategoryBadge = (cat: string) => {
@@ -289,11 +287,12 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
 
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <button
-              onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition cursor-pointer"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition cursor-pointer shadow-2xs"
+              title="Download data pengeluaran dalam format Microsoft Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export CSV</span>
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
             </button>
 
             <button
