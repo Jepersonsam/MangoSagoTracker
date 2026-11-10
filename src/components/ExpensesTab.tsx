@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Download, Plus, ShoppingBag, Pencil, Check, X, Receipt, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
-import { ExpenseItem } from '../types';
+import { ExpenseItem, ExpenseCategory } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 import { parseDateString } from './OrdersTab';
 
@@ -20,7 +20,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
   onDeleteExpense,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'All' | 'Bahan Baku' | 'Kemasan' | 'Operasional'>('All');
+  const [categoryFilter, setCategoryFilter] = useState<'All' | ExpenseCategory>('All');
   const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -191,6 +191,10 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
         return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'Operasional':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Belanja':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'Others':
+        return 'bg-slate-100 text-slate-800 border-slate-300';
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -266,6 +270,8 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Sagu)</option>
               <option value="Kemasan">Kemasan (Cup, Thinwall, Stiker)</option>
               <option value="Operasional">Operasional (Gas, Air, dll.)</option>
+              <option value="Belanja">Belanja (Belanja Umum / Perlengkapan)</option>
+              <option value="Others">Others (Lain-lain / Biaya Tambahan)</option>
             </select>
           </div>
         </div>

@@ -27,7 +27,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics }) => {
     {
       title: 'Pengeluaran Bahan',
       value: formatRupiah(metrics.totalExpenses),
-      subtext: 'Bahan Baku, Kemasan & Operasional',
+      subtext: 'Bahan, Kemasan, Belanja & Ops',
       icon: ShoppingBag,
       color: 'rose',
       bgLight: 'bg-rose-50',

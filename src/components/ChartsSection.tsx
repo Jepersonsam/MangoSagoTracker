@@ -49,6 +49,8 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
     'Bahan Baku': 0,
     Kemasan: 0,
     Operasional: 0,
+    Belanja: 0,
+    Others: 0,
   };
   expenses.forEach((exp) => {
     const cat = exp.category || 'Bahan Baku';
@@ -56,9 +58,11 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ orders, expenses }
   });
 
   const expenseCategoryData = [
-    { name: 'Bahan Baku', value: expenseByCategoryMap['Bahan Baku'], color: '#f59e0b' },
-    { name: 'Kemasan', value: expenseByCategoryMap['Kemasan'], color: '#06b6d4' },
-    { name: 'Operasional', value: expenseByCategoryMap['Operasional'], color: '#ec4899' },
+    { name: 'Bahan Baku', value: expenseByCategoryMap['Bahan Baku'] || 0, color: '#f59e0b' },
+    { name: 'Kemasan', value: expenseByCategoryMap['Kemasan'] || 0, color: '#06b6d4' },
+    { name: 'Operasional', value: expenseByCategoryMap['Operasional'] || 0, color: '#ec4899' },
+    { name: 'Belanja', value: expenseByCategoryMap['Belanja'] || 0, color: '#10b981' },
+    { name: 'Others', value: expenseByCategoryMap['Others'] || 0, color: '#64748b' },
   ].filter((d) => d.value > 0);
 
   // Payment Status Data

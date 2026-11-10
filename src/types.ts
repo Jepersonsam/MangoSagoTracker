@@ -40,6 +40,8 @@ export interface OrderItem {
   batch?: string; // Pagi / Malam
 }
 
+export type ExpenseCategory = 'Bahan Baku' | 'Kemasan' | 'Operasional' | 'Belanja' | 'Others';
+
 export interface ExpenseItem {
   id: string;
   tanggal: string;
@@ -48,7 +50,7 @@ export interface ExpenseItem {
   qty: number;
   totalAmount: number;
   sisaQty?: number | string;
-  category: 'Bahan Baku' | 'Kemasan' | 'Operasional';
+  category: ExpenseCategory;
   rowIndex?: number;
 }
 

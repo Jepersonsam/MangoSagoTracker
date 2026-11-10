@@ -1,4 +1,4 @@
-import { OrderItem, ExpenseItem, CashflowItem, AuditLog } from '../types';
+import { OrderItem, ExpenseItem, CashflowItem, AuditLog, ExpenseCategory } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
 export interface SupabaseOrderRow {
@@ -302,7 +302,7 @@ export async function fetchExpensesFromSupabase(): Promise<ExpenseItem[]> {
     qty: Number(row.qty) || 0,
     totalAmount: Number(row.total_amount) || 0,
     sisaQty: row.sisa_qty !== null && row.sisa_qty !== undefined ? String(row.sisa_qty) : '0',
-    category: (row.category || 'Bahan Baku') as 'Bahan Baku' | 'Kemasan' | 'Operasional',
+    category: (row.category || 'Bahan Baku') as ExpenseCategory,
     rowIndex: row.row_index || undefined,
   }));
 }

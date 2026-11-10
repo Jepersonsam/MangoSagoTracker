@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Plus, Trash2, Receipt, Sparkles, PackageCheck } from 'lucide-react';
-import { ExpenseItem } from '../types';
+import { ExpenseItem, ExpenseCategory } from '../types';
 import { formatRupiah, determineCategory } from '../services/sheetsService';
 
 interface NewExpenseModalProps {
@@ -14,7 +14,7 @@ interface NewExpenseModalProps {
 interface BatchItemRow {
   id: string;
   item: string;
-  category: 'Bahan Baku' | 'Kemasan' | 'Operasional';
+  category: ExpenseCategory;
   qty: number | '';
   unitPrice: number | '';
   sisaQty: string;
@@ -82,7 +82,7 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
   const [singleQty, setSingleQty] = useState<number | ''>(1);
   const [singleUnitPrice, setSingleUnitPrice] = useState<number | ''>('');
   const [singleSisaQty, setSingleSisaQty] = useState('0');
-  const [singleCategory, setSingleCategory] = useState<'Bahan Baku' | 'Kemasan' | 'Operasional'>('Bahan Baku');
+  const [singleCategory, setSingleCategory] = useState<ExpenseCategory>('Bahan Baku');
 
   // Batch (Multi-Item) State
   const [batchRows, setBatchRows] = useState<BatchItemRow[]>([
@@ -445,6 +445,8 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
                               <option value="Bahan Baku">Bahan Baku</option>
                               <option value="Kemasan">Kemasan</option>
                               <option value="Operasional">Operasional</option>
+                              <option value="Belanja">Belanja</option>
+                              <option value="Others">Others</option>
                             </select>
                           </td>
                           <td className="py-2 px-2">
@@ -580,6 +582,8 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
                             <option value="Bahan Baku">Bahan Baku</option>
                             <option value="Kemasan">Kemasan</option>
                             <option value="Operasional">Operasional</option>
+                            <option value="Belanja">Belanja</option>
+                            <option value="Others">Others</option>
                           </select>
                         </div>
                         <div className="text-right">
@@ -715,6 +719,8 @@ export const NewExpenseModal: React.FC<NewExpenseModalProps> = ({
                   <option value="Bahan Baku">Bahan Baku (Mangga, Susu, Gula)</option>
                   <option value="Kemasan">Kemasan (Cup, Sendok, Thinwall)</option>
                   <option value="Operasional">Operasional (Gas, Air, Listrik)</option>
+                  <option value="Belanja">Belanja (Belanja Umum / Perlengkapan)</option>
+                  <option value="Others">Others (Lain-lain / Biaya Tambahan)</option>
                 </select>
               </div>
 

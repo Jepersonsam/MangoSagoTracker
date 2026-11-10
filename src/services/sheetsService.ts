@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { OrderItem, ExpenseItem, CashflowItem, BatchSummary, DashboardMetrics } from '../types';
+import { OrderItem, ExpenseItem, CashflowItem, BatchSummary, DashboardMetrics, ExpenseCategory } from '../types';
 
 export const SPREADSHEET_ID = '1CyxgDHZAuE5iH5jB7YbHCEuJ9awKmNhJ0-IzV4BGvY4';
 
@@ -38,7 +38,7 @@ export function formatRupiah(amount: number): string {
   return isNegative ? `-${formatted}` : formatted;
 }
 
-export function determineCategory(item: string): 'Bahan Baku' | 'Kemasan' | 'Operasional' {
+export function determineCategory(item: string): ExpenseCategory {
   const lower = item.toLowerCase();
   if (
     lower.includes('cup') ||
@@ -59,6 +59,12 @@ export function determineCategory(item: string): 'Bahan Baku' | 'Kemasan' | 'Ope
     lower.includes('bensin')
   ) {
     return 'Operasional';
+  }
+  if (lower.includes('belanja') || lower.includes('perlengkapan') || lower.includes('alat')) {
+    return 'Belanja';
+  }
+  if (lower.includes('lain') || lower.includes('other')) {
+    return 'Others';
   }
   return 'Bahan Baku';
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Trash2, AlertTriangle, PackageCheck } from 'lucide-react';
-import { ExpenseItem } from '../types';
+import { ExpenseItem, ExpenseCategory } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 
 interface EditExpenseModalProps {
@@ -20,7 +20,7 @@ export const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
 }) => {
   const [tanggal, setTanggal] = useState('');
   const [item, setItem] = useState('');
-  const [category, setCategory] = useState<'Bahan Baku' | 'Kemasan' | 'Operasional'>('Bahan Baku');
+  const [category, setCategory] = useState<ExpenseCategory>('Bahan Baku');
   const [qty, setQty] = useState<number | ''>(1);
   const [unitPrice, setUnitPrice] = useState<number | ''>(0);
   const [totalAmount, setTotalAmount] = useState<number | ''>(0);
@@ -143,6 +143,8 @@ export const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
                 <option value="Bahan Baku">Bahan Baku</option>
                 <option value="Kemasan">Kemasan</option>
                 <option value="Operasional">Operasional</option>
+                <option value="Belanja">Belanja</option>
+                <option value="Others">Others</option>
               </select>
             </div>
           </div>
