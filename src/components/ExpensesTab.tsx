@@ -175,6 +175,34 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
     return { all: baseList.length, sisa, habis };
   }, [expenses, searchTerm, categoryFilter]);
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      All: 0,
+      'Bahan Baku': 0,
+      Kemasan: 0,
+      Operasional: 0,
+      Belanja: 0,
+      Others: 0,
+    };
+    const baseList = expenses.filter((exp) => {
+      const matchesSearch =
+        exp.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exp.tanggal.toLowerCase().includes(searchTerm.toLowerCase());
+      const numSisa = getSisaNum(exp.sisaQty);
+      let matchesStock = true;
+      if (stockFilter === 'sisa') matchesStock = numSisa > 0;
+      else if (stockFilter === 'habis') matchesStock = numSisa <= 0;
+      return matchesSearch && matchesStock;
+    });
+
+    counts.All = baseList.length;
+    baseList.forEach((e) => {
+      const cat = e.category || 'Bahan Baku';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [expenses, searchTerm, stockFilter]);
+
   const filteredExpenses = useMemo(() => {
     const list = expenses.filter((exp) => {
       const matchesSearch =
@@ -530,7 +558,32 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
                 </div>
               </th>
               <th className="py-3 px-4">Nama Item / Bahan</th>
-              <th className="py-3 px-4">Kategori</th>
+              <th className="py-2.5 px-3">
+                <div className="inline-flex flex-col items-start justify-center gap-1 select-none">
+                  <div className="flex items-center gap-1 text-slate-800">
+                    <span className="font-bold text-xs">Kategori</span>
+                    {categoryFilter !== 'All' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    )}
+                  </div>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value as any)}
+                    className={`text-[10px] normal-case tracking-normal font-bold py-0.5 px-2 rounded-lg border transition cursor-pointer shadow-2xs ${
+                      categoryFilter !== 'All'
+                        ? 'bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-400'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    <option value="All">Semua ({categoryCounts.All || 0})</option>
+                    <option value="Bahan Baku">Bahan Baku ({categoryCounts['Bahan Baku'] || 0})</option>
+                    <option value="Kemasan">Kemasan ({categoryCounts['Kemasan'] || 0})</option>
+                    <option value="Operasional">Operasional ({categoryCounts['Operasional'] || 0})</option>
+                    <option value="Belanja">Belanja ({categoryCounts['Belanja'] || 0})</option>
+                    <option value="Others">Others ({categoryCounts['Others'] || 0})</option>
+                  </select>
+                </div>
+              </th>
               <th className="py-3 px-4 text-right">Harga Satuan</th>
               <th className="py-3 px-4 text-center">Qty</th>
               <th className="py-3 px-4 text-right">Total Biaya</th>
