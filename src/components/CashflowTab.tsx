@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Search, Download, Wallet, Trash2, ArrowUpDown, ArrowDown, ArrowUp, RefreshCw } from 'lucide-react';
 import { CashflowItem } from '../types';
 import { formatRupiah } from '../services/sheetsService';
 import { exportToExcel } from '../services/excelService';
@@ -8,14 +8,39 @@ import { parseDateString } from './OrdersTab';
 interface CashflowTabProps {
   cashflows: CashflowItem[];
   onDeleteCashflow?: (id: string) => void;
+  onReconcileCashflow?: () => Promise<void>;
+  isReconciling?: boolean;
 }
 
-export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCashflow }) => {
+export const CashflowTab: React.FC<CashflowTabProps> = ({
+  cashflows,
+  onDeleteCashflow,
+  onReconcileCashflow,
+  isReconciling = false,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
 
+  // Hitung running balance secara kronologis tanggal (ASC)
+  const cashflowsWithChronologicalBalance = useMemo(() => {
+    const sortedAsc = [...cashflows].sort((a, b) => {
+      const timeA = parseDateString(a.tanggal)?.getTime() || 0;
+      const timeB = parseDateString(b.tanggal)?.getTime() || 0;
+      return timeA - timeB;
+    });
+
+    let running = 0;
+    return sortedAsc.map((cf) => {
+      running += (cf.debit - cf.kredit);
+      return {
+        ...cf,
+        balance: running,
+      };
+    });
+  }, [cashflows]);
+
   const filtered = useMemo(() => {
-    const list = cashflows.filter((cf) =>
+    const list = cashflowsWithChronologicalBalance.filter((cf) =>
       cf.transaksi.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cf.tanggal.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -25,7 +50,7 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
       const timeB = parseDateString(b.tanggal)?.getTime() || 0;
       return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
     });
-  }, [cashflows, searchTerm, dateSortOrder]);
+  }, [cashflowsWithChronologicalBalance, searchTerm, dateSortOrder]);
 
   const totalDebit = filtered.reduce((sum, cf) => sum + cf.debit, 0);
   const totalKredit = filtered.reduce((sum, cf) => sum + cf.kredit, 0);
@@ -67,7 +92,20 @@ export const CashflowTab: React.FC<CashflowTabProps> = ({ cashflows, onDeleteCas
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onReconcileCashflow && (
+              <button
+                type="button"
+                onClick={onReconcileCashflow}
+                disabled={isReconciling}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                title="Sesuaikan otomatis Buku Kas dengan Penjualan Lunas & Pengeluaran"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${isReconciling ? 'animate-spin' : ''}`} />
+                <span>{isReconciling ? 'Menyesuaikan...' : 'Sesuaikan Buku Kas'}</span>
+              </button>
+            )}
+
             {/* Sort Date Toggle */}
             <button
               type="button"

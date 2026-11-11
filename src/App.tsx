@@ -18,6 +18,7 @@ import {
   updateExpenseInSupabase,
   deleteExpenseInSupabase,
   deleteCashflowInSupabase,
+  reconcileCashflowInSupabase,
   insertAuditLogInSupabase,
   clearAuditLogsInSupabase,
   subscribeToSupabaseChanges,
@@ -78,6 +79,7 @@ export default function App() {
   const [expenseModalMode, setExpenseModalMode] = useState<'single' | 'batch'>('batch');
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -763,6 +765,30 @@ export default function App() {
     }
   };
 
+  // RECONCILE CASHFLOW WITH ORDERS AND EXPENSES
+  const handleReconcileCashflow = async () => {
+    setIsReconciling(true);
+    try {
+      const result = await reconcileCashflowInSupabase();
+      if (result.success) {
+        showToast(result.message);
+        logAudit(
+          'UPDATE_SETTINGS',
+          'Sistem',
+          'Menyesuaikan Buku Kas dengan Penjualan & Pengeluaran',
+          result.message
+        );
+        await loadData(true);
+      } else {
+        showToast(result.message);
+      }
+    } catch (err: any) {
+      showToast(`Gagal menyesuaikan buku kas: ${err?.message || err}`);
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
   // CONFIRM DELETE HANDLER (Called when user clicks "Ya, Hapus Permanen" on warning modal)
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -950,6 +976,8 @@ export default function App() {
             <CashflowTab
               cashflows={cashflow}
               onDeleteCashflow={handleRequestDeleteCashflow}
+              onReconcileCashflow={handleReconcileCashflow}
+              isReconciling={isReconciling}
             />
           )}
         </div>
